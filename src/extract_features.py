@@ -8,6 +8,18 @@ import os
 def get_features_filename(domain: tsml.TsfelFeatureDomain, window_size: int, window_overlap: int) -> str:
     return os.path.join(tsml.FEATURES_DIRECTORY, f"d_{domain}-ws_{window_size}-wo_{window_overlap}.csv")
 
+def load_dataset() -> pandas.DataFrame:
+    df = pandas.DataFrame(dtype=tsml.DATASET_DTYPE)
+
+    for filename in os.listdir(tsml.RECORDING_TIMESERIES_DIRECTORY):
+        pandas.concat(df, pandas.read_csv(
+            filepath_or_buffer=os.path.join(tsml.RECORDING_TIMESERIES_DIRECTORY, filename), 
+            index_col=False, 
+            dtype="float64"
+        ))
+
+    return df
+
 if __name__ == '__main__':
     # Parameter Parser
     parser = ArgumentParser(description = "Extract features with the following parameters.")
@@ -35,11 +47,7 @@ if __name__ == '__main__':
 
     # Load Dataset
     with TimeLogger(start_message="Loading Dataset".ljust(20), end_message="Done\t{duration:.2f}", separator="\t"):
-        dataset = pandas.read_csv(
-            filepath_or_buffer=tsml.DATASET_FILE,
-            index_col=False,
-            dtype=tsml.DATASET_DTYPE
-        )
+        dataset = load_dataset()
 
     # group data
     with TimeLogger(start_message="Grouping Data".ljust(20), end_message="Done\t{duration:.2f}", separator="\t"):

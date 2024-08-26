@@ -13,6 +13,13 @@ from utils import TimeLogger
 
 import tsml
 
+# STYLE
+THEME = "clam"
+INSTRUCTION_FONT = ("Helvetica", 12)
+BUTTON_FONT = ("Helvetica", 12, "bold")
+FEEDBACK_QUESTION_FONT = ("Helvetica", 12, "bold")
+FEEDBACK_ANSWER_FONT = ("Arial", 10)
+
 # Events
 NEXT_LABEL_EVENT = '<<NextLabel>>'
 VIDEO_PLAY_EVENT = "<<Play>>"
@@ -22,10 +29,7 @@ STOP_RECORDING_EVENT = "<<StopRecording>>"
 FEEDBACK_CHANGED_EVENT = "<<FeedbackChanged>>"
 WEBCAM_FIRST_FRAME = "<<WebcamFirstFrame>>"
 
-INSTRUCTION_FONT = ("Helvetica", 12)
-BUTTON_FONT = ("Helvetica", 12, "bold")
-FEEDBACK_QUESTION_FONT = ("Helvetica", 12, "bold")
-FEEDBACK_ANSWER_FONT = ("Arial", 10)
+
 
 # Setup
 def setup_ui() -> tkinter.Tk:
@@ -45,7 +49,7 @@ def setup_ui() -> tkinter.Tk:
 
     # Style
     style = tkinter.ttk.Style(master=window)
-    style.theme_use(themename=tsml.RECORDING_APP_STYLE)
+    style.theme_use(themename=THEME )
     style.configure(style='Sash', sashthickness=10)
     style.configure(style='TRadiobutton', focusthickness=0)
     style.configure(style="TButton", font=BUTTON_FONT)
@@ -106,7 +110,7 @@ def setup_ui() -> tkinter.Tk:
     root_container.add(child=controls_container, weight=0)
 
     ### Start Recording
-    start_recording_button = tkinter.ttk.Button(master=controls_container, name="start_recording", text="LOADING", command=start_recording)
+    start_recording_button = tkinter.ttk.Button(master=controls_container, name="start_recording", text="LOADING", command=lambda: window.setvar(name="recording_active", value=True))
     start_recording_button.configure(state='disabled')
     start_recording_button.grid(row=0, column=0, sticky="s", padx=10, pady=10)
     window.bind(sequence=WEBCAM_FIRST_FRAME, func=lambda _: start_recording_button.configure(state="active", text="START"), add=True)
@@ -170,14 +174,6 @@ def toggle_preview():
     print("Toggle Preview")
     previews[window.getvar("label")].toggle_play_pause()
 
-def start_recording():
-    global recording_active, recording_start, window
-    print("Start Recording")
-
-    recording_active = True
-    recording_start = time.time()
-    window.event_generate(sequence=START_RECORDING_EVENT)
-
 def next_label():
     global window, previews, time_series_buffer, webcam_buffer, feedback_variable, webcam
     
@@ -213,20 +209,18 @@ def next_label():
             on_exit()
 
 def update_recording():
-    global window, recording_active, recording_start, time_series_inlet, time_series_buffer
+    global window, time_series_inlet, time_series_buffer
 
     if time_series_inlet is not None:
-        if not recording_active:
+        if not window.getvar(name="recording_active"):
             time_series_inlet.flush()
         else:
             (samples, _) = time_series_inlet.pull_chunk()
             if samples is not None:
                 time_series_buffer.extend(samples)
 
-    if recording_active and time.time() - recording_start >= tsml.RECORDING_APP_EXPRESSION_DURATION:
-        print("Stop Recording")
-        recording_active = False
-        window.event_generate(sequence=STOP_RECORDING_EVENT)
+    if window.getvar("recording_active") and time.time() - window.getvar("recording_start") >= tsml.RECORDING_APP_EXPRESSION_DURATION:
+        window.setvar(name="recording_active", value=False)
         
 def save_recording(participant: str, session: int, trial: int, label: int, time_series_data: tsml.TimeSeriesBuffer, webcam_data: tsml.WebcamBuffer, feedback_data: int):
     print("Save Recording", participant, session, trial, label)
@@ -247,7 +241,7 @@ def save_recording(participant: str, session: int, trial: int, label: int, time_
     time_series_filename = get_time_series_output_filename(base_filename)
     os.makedirs(os.path.dirname(time_series_filename), exist_ok=True)
     time_series_df = pandas.DataFrame(data = {
-        tsml.CHANNELS[i]: [sample[i] for sample in time_series_data]
+        tsml.CHANNELS[i]: [sample[i+1] for sample in time_series_data]
         for i in range(len(tsml.CHANNELS))
     })
     time_series_df.to_csv(path_or_buf=time_series_filename,index=False)
@@ -442,23 +436,23 @@ class CV2Video:
 
 class Webcam(CV2Video):
     def _on_frame_received(self, frame: cv2.typing.MatLike) -> None:
-        global window, recording_active, webcam_buffer
+        global window, webcam_buffer
         if self._frame is None:
             window.event_generate(WEBCAM_FIRST_FRAME)
-        if recording_active:
+        if window.getvar(name="recording_active"):
             webcam_buffer.append(self._frame)
         return super()._on_frame_received(frame)
     
     def _update_image(self) -> None:
-        global recording_active
-        if recording_active:
+        global window
+        if window.getvar("recording_active"):
             temp = self._frame
             border_size = 10
             self.width += border_size
             self.height += border_size
             self._frame = cv2.copyMakeBorder(temp, border_size, border_size, border_size, border_size, cv2.BORDER_CONSTANT, None, (0, 0,255))
         super()._update_image()
-        if recording_active:
+        if window.getvar("recording_active"):
             self._frame = temp
             self.width -= border_size
             self.height -= border_size
@@ -476,23 +470,28 @@ if __name__ == '__main__':
 
     # Recording
     with TimeLogger("Setup Recording Variables", "Done"):
-        recording_active = False
-        recording_start = 0
-        time_series_stream_info = next((stream_info for stream_info in pylsl.resolve_streams() if stream_info.name == "OpenSignals"), None)
+        recording_active_variable = tkinter.BooleanVar(master=window, name="recording_active", value=False)
+        recording_start_variable = tkinter.Variable(master=window, name="recording_start", value=0.0)
+        recording_active_variable.trace_add(mode="write", callback=lambda _, __, ___: print(recording_active_variable.get() and "Start Recording" or "Stop Recording"))
+        recording_active_variable.trace_add(mode="write", callback=lambda _, __, ___: window.event_generate(recording_active_variable.get() and START_RECORDING_EVENT or STOP_RECORDING_EVENT))
+        recording_active_variable.trace_add(mode="write", callback=lambda _, __, ___: recording_start_variable.set(value=recording_active_variable.get() and time.time() or recording_start_variable.get()))
+
+        time_series_stream_info = next((stream_info for stream_info in pylsl.resolve_streams() if stream_info.name() == "OpenSignals"), None)
         time_series_inlet = time_series_stream_info is not None and pylsl.StreamInlet(time_series_stream_info) or None
         time_series_buffer: tsml.TimeSeriesBuffer = []
         feedback_variable: tkinter.IntVar = tkinter.IntVar(window, name="feedback")
         webcam_buffer: tsml.WebcamBuffer = []
+
         feedback_variable.trace_add(mode="write", callback=lambda _, __, ___: window.event_generate(FEEDBACK_CHANGED_EVENT))
 
         if time_series_inlet is None:
-            tkinter.messagebox.showerror(message="No OpenSignals stream found\nHello\nWorld")
-        elif time_series_inlet.channel_count != len(tsml.CHANNELS):
-            tkinter.messagebox.showerror(message=f"Wrong number of OpenSignal channels.\nGot: {time_series_inlet.channel_count}\nExpected: {len(tsml.CHANNELS)}")
+            tkinter.messagebox.showerror(message="No OpenSignals stream found\nPlease restart the app")
+        elif time_series_inlet.channel_count-1 != len(tsml.CHANNELS):
+            tkinter.messagebox.showerror(message=f"Wrong number of OpenSignal channels.\nGot: {time_series_inlet.channel_count-1}\nExpected: {len(tsml.CHANNELS)}\nPlease restart the app")
 
     # Indentifier
     with TimeLogger("Setup Identifier", "Done", separator="\t"):
-        participant_value = tkinter.simpledialog.askstring(title="Participant", prompt="Enter your participant identifier:\t\t", parent=window) or 'test'
+        participant_value = tkinter.simpledialog.askstring(title="Participant", prompt="Enter the participant identifier:\t\t", parent=window) or 'test'
         session_value = next(i for i in range(tsml.RECORDING_APP_MAX_SESSION_NUMBER) if not does_session_exist(participant=participant_value, session=i))
 
         participant = tkinter.StringVar(master=window, name="participant", value=participant_value)

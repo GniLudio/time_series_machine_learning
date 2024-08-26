@@ -7,7 +7,6 @@ SAMPLING_FREQUENCY = 2000
 NUMBER_OF_EXPRESSIONS = 4
 
 # RECORDING APP
-RECORDING_APP_STYLE = 'clam'
 RECORDING_APP_EXPRESSION_DURATION = 10
 RECORDING_APP_WEBCAM_RESOLUTION_WIDTH = 1920 # to bypass opencv default webcam resolution of (640, 480)
 RECORDING_APP_WEBCAM_RESOLUTION_HEIGHT = 1080 # to bypass opencv default webcam resolution of (640, 480)
@@ -26,8 +25,8 @@ type TsfelFeatureDomain = typing.Literal["all", "statistical", "temporal", "spec
 TSFEL_FEATURE_DOMAINS: tuple[str] =     ["all", "statistical", "temporal", "spectral"]
 
 # Columns
-type Channel = typing.Literal["Channel 1", "Channel 2", "Channel 3", "Channel 4"]
-CHANNELS: tuple[str] =       ["Channel 1", "Channel 2", "Channel 3", "Channel 4"]
+type Channel = typing.Literal["Ch1", "Ch2"]
+CHANNELS: tuple[str] =       ["Ch1", "Ch2"]
 
 type AdditionalColumn = typing.Literal["Participant", "Session", "Trial", "Action Unit", "Feedback"]
 ADDITIONAL_COLUMNS: tuple[str] =      ["Participant", "Session", "Trial", "Action Unit", "Feedback"]
@@ -59,7 +58,6 @@ RECORDING_SURVEY_DIRECTORY = os.path.join(RECORDING_DIRECTORY, 'survey')
 RESOURCES_DIRECTORY = 'resources'
 RESOURCES_PREVIEWS_DIRECTORY = os.path.join(RESOURCES_DIRECTORY, 'previews')
 
-DATASET_FILE = os.path.join(DATA_DIRECTORY, 'dataset.csv')
 FEATURES_DIRECTORY = os.path.join(DATA_DIRECTORY, 'features')
 CROSS_VALIDATION_DIRECTORY = os.path.join(DATA_DIRECTORY, 'cross_validation')
 CROSS_VALIDATION_PERSON_DEPENDENT_DIRECTORY = os.path.join(CROSS_VALIDATION_DIRECTORY, 'person_dependent')
