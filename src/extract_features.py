@@ -9,14 +9,14 @@ def get_features_filename(domain: tsml.TsfelFeatureDomain, window_size: int, win
     return os.path.join(tsml.FEATURES_DIRECTORY, f"d_{domain}-ws_{window_size}-wo_{window_overlap}.csv")
 
 def load_dataset() -> pandas.DataFrame:
-    df = pandas.DataFrame(dtype=tsml.DATASET_DTYPE)
+    df = pandas.DataFrame()
 
     for filename in os.listdir(tsml.RECORDING_TIMESERIES_DIRECTORY):
-        pandas.concat(df, pandas.read_csv(
+        df = pandas.concat([df, pandas.read_csv(
             filepath_or_buffer=os.path.join(tsml.RECORDING_TIMESERIES_DIRECTORY, filename), 
             index_col=False, 
-            dtype="float64"
-        ))
+            dtype=tsml.DATASET_DTYPE
+        )])
 
     return df
 
