@@ -25,12 +25,12 @@ type TsfelFeatureDomain = typing.Literal["all", "statistical", "temporal", "spec
 TSFEL_FEATURE_DOMAINS: tuple[str] =     ["all", "statistical", "temporal", "spectral"]
 
 # Columns
-type Channel = typing.Literal["Ch1", "Ch2"]
-CHANNELS: tuple[str] =       ["Ch1", "Ch2"]
+type Channel = typing.Literal["CH1","CH2","CH3","CH4","CH5",]
+CHANNELS: tuple[str] =       ["CH1","CH2","CH3","CH4","CH5",]
 
-type AdditionalColumn = typing.Literal["Participant", "Session", "Trial", "Action Unit", "Feedback"]
-ADDITIONAL_COLUMNS: tuple[str] =      ["Participant", "Session", "Trial", "Action Unit", "Feedback"]
-LABEL_COLUMN = "Action Unit"
+type AdditionalColumn = typing.Literal["Participant", "CH46", "Word Index"]
+ADDITIONAL_COLUMNS: tuple[str] =      ["Participant", "CH46", "Word Index"]
+LABEL_COLUMN = "CH46"
 PARTICIPANT_COLUMN = "Participant"
 
 type WebcamBuffer = list[cv2.typing.MatLike]
@@ -38,12 +38,9 @@ type TimeSeriesBuffer = list[list[float]]
 
 # Pandas
 DATASET_DTYPE = {
-    **{channel: 'float64' for channel in CHANNELS},
-    'Participant': 'object',
-    'Session': 'int64',
-    'Trial': 'int64',
-    'Action Unit': 'int64',
-    'Feedback': 'int64',
+    **{channel: 'Float64' for channel in CHANNELS},
+    **{column: 'Int64' for column in ADDITIONAL_COLUMNS},
+    'Participant': 'object'
 }
 
 # Paths
