@@ -11,7 +11,7 @@ with utils.TimeLogger("Extracting Features", "Extracting Features\tDone\t{durati
     for window_size in window_sizes:
         for window_overlap in window_overlaps:
             with utils.TimeLogger(f"\t{window_size} - {window_overlap}", "Done\t{duration:.2f}", separator="\t"):
-                subprocess.run(["python", os.path.join("src", "extract_features.py"), "-ws", str(window_size), "-wo", str(window_overlap)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                subprocess.run(["python", os.path.join("src", "extract_features.py"), "-ws", str(window_size), "-wo", str(window_overlap)])
 
 # Cross Validation
 with utils.TimeLogger("Cross Validating", "Cross Validating\tDone\t{duration:.2f}"):
@@ -19,4 +19,4 @@ with utils.TimeLogger("Cross Validating", "Cross Validating\tDone\t{duration:.2f
         for window_overlap in window_overlaps:
             for model in models:
                 with utils.TimeLogger(f"\t{window_size} - {window_overlap} - {model}", "Done\t""{duration:.2f}", separator="\t"):
-                    subprocess.run(["python", os.path.join("src", "cross_validation.py"), "-pd", "-ws", str(window_size), "-wo", str(window_overlap)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    subprocess.run(["python", os.path.join("src", "cross_validation.py"), "-pd", "-ws", str(window_size), "-wo", str(window_overlap)])
