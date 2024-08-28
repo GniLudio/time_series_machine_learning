@@ -21,8 +21,8 @@ RECORDING_APP_PREVIEW_INSTRUCTION = lambda window: ([
 RECORDING_APP_WEBCAM_INSTRUCTION = lambda window: f"An instruction for the webcam can be placed here."
 
 # Types
-type TsfelFeatureDomain = typing.Literal["all", "statistical", "temporal", "spectral"]
-TSFEL_FEATURE_DOMAINS: tuple[str] =     ["all", "statistical", "temporal", "spectral"]
+type TsfelFeatureDomain = typing.Literal["all", "statistical", "temporal", "spectral", "fractal"]
+TSFEL_FEATURE_DOMAINS: tuple[str] =     ["all", "statistical", "temporal", "spectral", "fractal"]
 
 # Columns
 type Channel = typing.Literal["Ch1", "Ch2"]
