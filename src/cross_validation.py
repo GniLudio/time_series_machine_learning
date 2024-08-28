@@ -19,7 +19,7 @@ if __name__ == '__main__':
     parser.add_argument("-d", "--domain", default="all", type=str, choices=tsml.TSFEL_FEATURE_DOMAINS, help="The tsfel feature domain to be used.")
     parser.add_argument("-ws", "--window_size", default=100, type=int, help="The window size to be used. (in ms)")
     parser.add_argument("-wo", "--window_overlap", default=0, type=int, help="The window overlap to be used.")
-    parser.add_argument("-m", "--model", default="randomforest", choices=models.MODELS.keys(), help="The model to be used.")
+    parser.add_argument("-m", "--model", default="RandomForestClassifier", choices=models.MODELS.keys(), help="The model to be used.")
     parser.add_argument("-c", "--channel", default=tsml.CHANNELS, action="append", type=str, help="The channels to be used. (all if omitted)")
     parser.add_argument("-pd", "--person_dependent", action="store_true", help="Whether to do a person-dependent cross-validation. (person-independent if omitted)")
     # TODO: Add grouping parameter
