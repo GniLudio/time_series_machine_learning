@@ -51,13 +51,13 @@ if __name__ == '__main__':
 
     # group data
     with TimeLogger(start_message="Grouping Data".ljust(20), end_message="Done\t{duration:.2f}", separator="\t"):
-        grouped_data = dataset.groupby(by=tsml.ADDITIONAL_COLUMNS).groups
+        grouped_data = dataset.groupby(by=tsml.ADDITIONAL_COLUMNS, sort=True).groups
     
     # Extract Features
     with TimeLogger(start_message="Extract Features", end_message="Extracting Features\tDone\t{duration:.2f}"):
         configuration = tsfel.get_features_by_domain(domain != 'all' and domain or None)
         for i, (group_key, group_indices) in enumerate(grouped_data.items(), start=1):
-            with TimeLogger(f"\t{i} / {str(len(grouped_data))}\t{group_key}".ljust(45), "Done\t{duration:.2f}", separator="\t"):
+            with TimeLogger(f"\t{str(i).rjust(len(str(len(grouped_data))))} / {str(len(grouped_data))}\t{group_key}".ljust(45), "Done\t{duration:.2f}", separator="\t"):
                 features = tsfel.time_series_features_extractor(
                     dict_features = configuration,
                     signal_windows = dataset.iloc[group_indices][tsml.CHANNELS],
