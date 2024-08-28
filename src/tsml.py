@@ -28,8 +28,8 @@ TSFEL_FEATURE_DOMAINS: tuple[str] =     ["all", "statistical", "temporal", "spec
 type Channel = typing.Literal["CH1","CH2","CH3","CH4","CH5",]
 CHANNELS: tuple[str] =       ["CH1","CH2","CH3","CH4","CH5",]
 
-type AdditionalColumn = typing.Literal["Participant", "CH46", "Word Index"]
-ADDITIONAL_COLUMNS: tuple[str] =      ["Participant", "CH46", "Word Index"]
+type AdditionalColumn = typing.Literal["Participant","Word Index", "CH46"]
+ADDITIONAL_COLUMNS: tuple[str] =      ["Participant","Word Index", "CH46"]
 LABEL_COLUMN = "CH46"
 PARTICIPANT_COLUMN = "Participant"
 
@@ -59,3 +59,5 @@ FEATURES_DIRECTORY = os.path.join(DATA_DIRECTORY, 'features')
 CROSS_VALIDATION_DIRECTORY = os.path.join(DATA_DIRECTORY, 'cross_validation')
 CROSS_VALIDATION_PERSON_DEPENDENT_DIRECTORY = os.path.join(CROSS_VALIDATION_DIRECTORY, 'person_dependent')
 CROSS_VALIDATION_PERSON_INDEPENDENT_DIRECTORY = os.path.join(CROSS_VALIDATION_DIRECTORY, 'person_independent')
+
+IMAGES_DIRECTORY = os.path.join(DATA_DIRECTORY, 'images')
