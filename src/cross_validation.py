@@ -64,7 +64,7 @@ if __name__ == '__main__':
         df.drop(columns=tsml.ADDITIONAL_COLUMNS, inplace=True)
         df.drop(columns=[column for column in df.columns if not any(column.startswith(channel) for channel in channels)], inplace=True)
         df.drop(columns=[column for column in df.columns if not any(f"_{feature}" in column for feature in features)], inplace=True)
-        if df.empty():
+        if df.empty:
             print("Empty dataframe", end="\t")
             exit()
         
