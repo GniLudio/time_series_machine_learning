@@ -25,4 +25,3 @@ with utils.TimeLogger("Cross Validating", "Cross Validating\tDone\t{duration:.2f
                 for feature_combination in feature_combinations:
                     print(window_size, window_overlap, model, *feature_combination)
                     subprocess.run(["python", os.path.join("src", "cross_validation.py"), "-pd", "-ws", str(window_size), "-wo", str(window_overlap), "-m", model, *feature_combination])
-                    exit()
