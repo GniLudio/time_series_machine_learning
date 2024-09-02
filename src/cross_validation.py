@@ -63,7 +63,10 @@ if __name__ == '__main__':
         labels = df[tsml.LABEL_COLUMN]
         df.drop(columns=tsml.ADDITIONAL_COLUMNS, inplace=True)
         df.drop(columns=[column for column in df.columns if not any(column.startswith(channel) for channel in channels)], inplace=True)
-        df.drop(columns=[column for column in df.columns if not any(feature in column for feature in features)], inplace=True)
+        df.drop(columns=[column for column in df.columns if not any(f"_{feature}" in column for feature in features)], inplace=True)
+        if df.empty():
+            print("Empty dataframe", end="\t")
+            exit()
         
 
     # Split Data for person-dependent or person-indepent
@@ -73,7 +76,7 @@ if __name__ == '__main__':
         splits = {'all': additional_info.index}
 
     # Cross Validation
-    with TimeLogger("Cross validating".ljust(20), "Done\t{duration:.2f}"):
+    with TimeLogger("Cross validating".ljust(20) + "\t'" + output_filename + "'", "Done\t{duration:.2f}"):
         estimator = models.MODELS[model]()
         for i, (split_name, split_index) in enumerate(splits.items(), start=1):
             with TimeLogger("\t" + f"{i} / {len(splits)}\t{split_name}".ljust(10), "Done\t{duration:.2f}", separator="\t"):
