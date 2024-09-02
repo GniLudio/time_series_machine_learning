@@ -10,7 +10,7 @@ import models
 def get_cross_validation_filename(domain: tsml.TsfelFeatureDomain, window_size: int, window_overlap: int, model: str, channels: list[str], person_dependent: bool, features: list[str]):
     return os.path.join(
         person_dependent and tsml.CROSS_VALIDATION_PERSON_DEPENDENT_DIRECTORY or tsml.CROSS_VALIDATION_PERSON_INDEPENDENT_DIRECTORY,
-        f"cv{person_dependent and 'p' or 'i'}-d_{domain}-f_{'.'.join(features)}-ws_{window_size}-wo_{window_overlap}-m_{model}-c_{'.'.join(channels)}.csv"
+        f"cv{person_dependent and 'p' or 'i'}-d_{domain}-f_{len(features) == len(tsml.TSFEL_FEATURES) and 'all' or '.'.join(features)}-ws_{window_size}-wo_{window_overlap}-m_{model}-c_{'.'.join(channels)}.csv"
     )
 
 if __name__ == '__main__':
