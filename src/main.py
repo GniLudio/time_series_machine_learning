@@ -15,9 +15,10 @@ models = ["RandomForestClassifier"]
 #            subprocess.run(["python", os.path.join("src", "extract_features.py"), "-ws", str(window_size), "-wo", str(window_overlap)])
 
 # Cross Validation
+
 with utils.TimeLogger("Cross Validating", "Cross Validating\tDone\t{duration:.2f}"):
-    feature_combinations: list[tuple[str, str, str]] = itertools.combinations(tsml.TSFEL_FEATURES, 2)
-    feature_combinations: list[str] = [[f"-f '{feature}'" for feature in list(combination)] for combination in feature_combinations]
+    feature_combinations: list[tuple[str, str, str]] = itertools.combinations(tsml.TSFEL_FEATURES, 3)
+    feature_combinations: list[str] = [" ".join([f"-f '{feature}'" for feature in set(combination)]) for combination in feature_combinations if len(set(combination)) == len(combination)]
     for window_size in window_sizes:
         for window_overlap in window_overlaps:
             for model in models:
