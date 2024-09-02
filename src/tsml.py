@@ -1,6 +1,7 @@
 import os
 import typing
 import cv2.typing
+import tsfel
 
 # PARAMETER
 SAMPLING_FREQUENCY = 2000
@@ -22,8 +23,8 @@ RECORDING_APP_WEBCAM_INSTRUCTION = lambda window: f"An instruction for the webca
 
 # Types
 type TsfelFeatureDomain = typing.Literal["all", "statistical", "temporal", "spectral", "fractal"]
-TSFEL_FEATURE_DOMAINS: tuple[str] =     ["all", "statistical", "temporal", "spectral", "fractal"]
-
+TSFEL_FEATURE_DOMAINS: tuple[str] =     ["all"] + [tsfel.get_features_by_domain().keys()]
+TSFEL_FEATURES = [feature for domain in tsfel.get_features_by_domain().values() for feature in domain.keys()]
 # Columns
 type Channel = typing.Literal["Ch1", "Ch2"]
 CHANNELS: tuple[str] =       ["Ch1", "Ch2"]
