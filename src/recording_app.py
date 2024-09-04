@@ -147,6 +147,7 @@ def setup_videos(window: tkinter.Tk, webcam_path: str, preview_path: str) -> tup
         container=webcam_video, 
         filename_or_index=0, 
         api_preference=cv2.CAP_ANY,
+        flipped=True,
         width=tsml.RECORDING_APP_WEBCAM_RESOLUTION_WIDTH,
         height=tsml.RECORDING_APP_WEBCAM_RESOLUTION_HEIGHT,
         use_fps_delay=False
@@ -160,10 +161,11 @@ def setup_videos(window: tkinter.Tk, webcam_path: str, preview_path: str) -> tup
             container=preview_video,
             filename_or_index=os.path.join(tsml.RESOURCES_PREVIEWS_DIRECTORY, f"preview_{i}.mp4"),
             api_preference=cv2.CAP_ANY,
+            flipped=False,
             width=None,
             height=None,
             use_fps_delay=True
-        ) for i in range(tsml.NUMBER_OF_EXPRESSIONS)
+        ) for i in range(tsml.RECORDING_APP_NUMBER_OF_EXPRESSIONS)
     }
 
     return webcam, previews
@@ -195,7 +197,7 @@ def next_label():
     webcam_buffer = []
     window.setvar(name="feedback", value=0)
 
-    if label+1 < tsml.NUMBER_OF_EXPRESSIONS:
+    if label+1 < tsml.RECORDING_APP_NUMBER_OF_EXPRESSIONS:
         print("Next Label")
         window.setvar(name="label", value=label+1)
     else:
@@ -279,10 +281,11 @@ def does_session_exist(participant: str, session: int) -> bool:
 
 # Classes
 class CV2Video:
-    def __init__(self, container: tkinter.Label, filename_or_index: str | int, api_preference: int, width: int | None, height: int | None, use_fps_delay: bool, frame_number: int = 0):
+    def __init__(self, container: tkinter.Label, filename_or_index: str | int, api_preference: int, flipped: bool, width: int | None, height: int | None, use_fps_delay: bool, frame_number: int = 0):
         self.container = container
         self.filename_or_index = filename_or_index
         self.api_preference = api_preference
+        self.flipped = flipped
         self.width = width
         self.height = height
         self.use_fps_delay = use_fps_delay
@@ -400,7 +403,10 @@ class CV2Video:
         self._image_needs_update = False
         if self._frame is not None:
             optimal_size = self._get_optimal_size()
-            image = cv2.resize(self._frame,optimal_size)
+            image = self._frame
+            if self.flipped:
+                image = cv2.flip(image, 1)
+            image = cv2.resize(image,optimal_size)
             image = cv2.cvtColor(image,cv2.COLOR_BGR2RGBA)
             image = PIL.Image.fromarray(image)
             image = PIL.ImageTk.PhotoImage(image)
@@ -422,7 +428,7 @@ class CV2Video:
             return (max_width, math.ceil(max_width / video_aspect_ratio))
 
     def __reduce__(self) -> str | tuple[object, ...]:
-        return (self.__class__, (None, self.filename_or_index, self.api_preference, self.width, self.height, self.use_fps_delay, self.frame_number))
+        return (self.__class__, (None, self.filename_or_index, self.api_preference, self.flipped, self.width, self.height, self.use_fps_delay, self.frame_number))
 
     def __del__(self):
         if self._frame_collector is not None:
