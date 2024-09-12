@@ -5,9 +5,6 @@ from argparse import ArgumentParser
 import tsfel
 import os
 
-def get_features_filename(domain: tsml.TsfelFeatureDomain, window_size: int, window_overlap: int) -> str:
-    return os.path.join(tsml.FEATURES_DIRECTORY, f"d_{domain}-ws_{window_size}-wo_{window_overlap}.csv")
-
 def load_dataset() -> pandas.DataFrame:
     df = pandas.DataFrame()
 
@@ -19,6 +16,12 @@ def load_dataset() -> pandas.DataFrame:
         )])
 
     return df
+
+def get_features_filename(domain: tsml.TsfelFeatureDomain, window_size: int, window_overlap: int) -> str:
+    return os.path.join(tsml.FEATURES_DIRECTORY, f"d_{domain}-ws_{window_size}-wo_{window_overlap}.csv")
+
+def load_features(domain: tsml.TsfelFeatureDomain, window_size: int, window_overlap: int) -> pandas.DataFrame:
+    return pandas.read_csv(get_features_filename(domain, window_size, window_overlap))
 
 if __name__ == '__main__':
     # Parameter Parser

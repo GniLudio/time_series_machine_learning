@@ -13,8 +13,9 @@ import sklearn.neural_network
 import sklearn.semi_supervised
 import sklearn.svm
 import sklearn.tree
+import sklearn.base
 
-MODELS = {
+MODELS: dict[str, sklearn.base.BaseEstimator] = {
     'AdaBoost': lambda: sklearn.ensemble.AdaBoostClassifier(),
     'Bagging': lambda: sklearn.ensemble.BaggingClassifier(),
     'BernoulliNB': lambda: sklearn.naive_bayes.BernoulliNB(),
