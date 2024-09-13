@@ -212,7 +212,7 @@ def setup_videos(window: tkinter.Tk, webcam_path: str, preview_path: str) -> tup
     webcam = Webcam(
         container=webcam_video, 
         filename_or_index=0, 
-        api_preference=cv2.CAP_DSHOW,
+        api_preference=cv2.CAP_ANY,
         flipped=True,
         width=tsml.RECORDING_APP_WEBCAM_RESOLUTION_WIDTH,
         height=tsml.RECORDING_APP_WEBCAM_RESOLUTION_HEIGHT,
