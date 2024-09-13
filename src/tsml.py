@@ -18,13 +18,22 @@ RECORDING_APP_CONTINUE_MESSAGE = "Do you want to continue?"
 RECORDING_APP_FEEDBACK_QUESTION = "How satisfied were you with the expression?"
 RECORDING_APP_FEEDBACK_ANSWERS = ["Not at all", "Very"]
 RECORDING_APP_PREVIEW_INSTRUCTION = lambda window: ([
-    "An instruction for the preview can be placed here.",
-    "An instruction for the second expression can be placed here.",
-    "This should be self-explanatory now.",
-    "I hope you don't have an further questions.",
+    "Keep your expression neutral and relaxed.", #AU0
+    "Keep your expression neutral and relaxed slightly.", #AU0
+    "Raise the inner corners of your eyebrows.", # AU1 
+    "Raise the inner corners of your eyebrows slightly.", # AU1 
+    "Raise the outer corners of your eyebrows.", # AU2 
+    "Raise the outer corners of your eyebrows slightly.", # AU2 
+    "Lower your eyebrows and draw them together.", # AU4 
+    "Lower your eyebrows and draw them together.", # AU4 
+    "Wrinkle your nose, letting your lips part.", # AU9 
+    "Let the corners of your lips come up.", # AU12 
+    "Push your lower lip up, thereby raising your chin.", # AU17 
+    "Stretch your mouth horizontally, pulling your lip corners back toward your ears.", # AU20 
+    "Press your lips together", # AU24 
 ])[window.getvar("label")]
 RECORDING_APP_WEBCAM_INSTRUCTION = lambda window: f"An instruction for the webcam can be placed here."
-RECORDING_APP_TITLE = lambda window: f"TSML - Participant {window.getvar("participant")} - Session {window.getvar("session")} - Trial {window.getvar("trial")} - Label {window.getvar("label")}"
+RECORDING_APP_TITLE = lambda window: f"TSML - Participant {window.getvar("participant")} - Session {window.getvar("session")} - Trial {window.getvar("trial")} - Action Unit {window.getvar("label")}"
 RECORDING_APP_SURVEY_TITLE = "Survey"
 RECORDING_APP_SURVEY_QUESTIONS =  [
     { "type": "Text", "text": "Some Text"},
@@ -42,7 +51,7 @@ type TsfelFeatureDomain = typing.Literal["all", "statistical", "temporal", "spec
 TSFEL_FEATURE_DOMAINS: tuple[str] =     ["all"] + [tsfel.get_features_by_domain().keys()]
 TSFEL_FEATURES = [feature for domain in tsfel.get_features_by_domain().values() for feature in domain.keys()]
 # Columns
-type Channel = typing.Literal["Ch1", "Ch2"]
+type Channel = typing.Literal["Channel 1", "Channel 2"]
 CHANNELS: tuple[str] =       ["Ch1", "Ch2"]
 
 type AdditionalColumn = typing.Literal["Participant", "Session", "Trial", "Action Unit", "Feedback"]

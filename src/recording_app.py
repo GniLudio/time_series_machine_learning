@@ -31,6 +31,9 @@ STOP_RECORDING_EVENT = "<<StopRecording>>"
 FEEDBACK_CHANGED_EVENT = "<<FeedbackChanged>>"
 WEBCAM_FIRST_FRAME = "<<WebcamFirstFrame>>"
 
+# Debugging
+SHOW_THEME_SELECTOR = True
+
 # Setup
 def setup_ui() -> tkinter.Tk:
     # Window
@@ -83,12 +86,20 @@ def setup_ui() -> tkinter.Tk:
     seperator_container.grid_columnconfigure(index=0, weight=1)
     video_container.add(child=seperator_container, weight=1)
 
+    if SHOW_THEME_SELECTOR:
+        style = tkinter.ttk.Style()
+        variable = tkinter.StringVar(value=style.theme_use())
+        tkinter.ttk.Combobox(seperator_container, values=style.theme_names(), textvariable=variable).grid(sticky="n")
+        variable.trace_add("write", lambda _, __, ___: style.theme_use(variable.get() or style.theme_use()))
+
     ### Webcam
     webcam_container = tkinter.ttk.Frame(master=video_container, name="webcam")
     webcam_container.grid_rowconfigure(index=0, weight=1)
     webcam_container.grid_rowconfigure(index=1, weight=0)
     webcam_container.grid_columnconfigure(index=0, weight=1)
     video_container.add(child=webcam_container, weight=3)
+
+
 
     webcam_video = tkinter.Label(master=webcam_container, name="video")
     webcam_video.grid(row=0, column=0, sticky="nsew")
@@ -201,9 +212,15 @@ def open_survey():
 
     submit_button = tkinter.Button(root, text="Submit", font=SURVEY_SUBMIT_FONT, command=lambda: on_submit_survey(variables))
     submit_button.grid(row=len(tsml.RECORDING_APP_SURVEY_QUESTIONS)+1, column=0, columnspan=2, padx=10, pady=10)
-    
+
+    if SHOW_THEME_SELECTOR:
+        style = tkinter.ttk.Style()
+        variable = tkinter.StringVar(value=style.theme_use())
+        tkinter.ttk.Combobox(dialog, values=style.theme_names(), textvariable=variable).grid()
+        variable.trace_add("write", lambda _, __, ___: style.theme_use(variable.get()))
+
     dialog.wait_visibility()
-    dialog.deiconify()
+    dialog.geometry(f"+{(dialog.winfo_screenwidth()) // 2}+{dialog.winfo_width() // 2}")
     dialog.grab_set()
     dialog.wait_window()
 
@@ -565,6 +582,7 @@ if __name__ == '__main__':
         recording_active_variable = tkinter.BooleanVar(master=window, name="recording_active", value=False)
         recording_start_variable = tkinter.Variable(master=window, name="recording_start", value=0.0)
         recording_active_variable.trace_add(mode="write", callback=lambda _, __, ___: print(recording_active_variable.get() and "Start Recording" or "Stop Recording"))
+        recording_active_variable.trace_add(mode="write", callback=lambda _, __, ___: not recording_active_variable.get() and time_series_buffer.clear() or None)
         recording_active_variable.trace_add(mode="write", callback=lambda _, __, ___: window.event_generate(recording_active_variable.get() and START_RECORDING_EVENT or STOP_RECORDING_EVENT))
         recording_active_variable.trace_add(mode="write", callback=lambda _, __, ___: recording_start_variable.set(value=recording_active_variable.get() and time.time() or recording_start_variable.get()))
 
