@@ -7,7 +7,7 @@ import tsfel
 SAMPLING_FREQUENCY = 2000
 
 # RECORDING APP
-RECORDING_APP_NUMBER_OF_EXPRESSIONS = 1
+RECORDING_APP_NUMBER_OF_EXPRESSIONS = 9
 RECORDING_APP_EXPRESSION_DURATION = 1
 RECORDING_APP_WEBCAM_RESOLUTION_WIDTH = 1920 # to bypass opencv default webcam resolution of (640, 480)
 RECORDING_APP_WEBCAM_RESOLUTION_HEIGHT = 1080 # to bypass opencv default webcam resolution of (640, 480)
@@ -42,8 +42,8 @@ type TsfelFeatureDomain = typing.Literal["all", "statistical", "temporal", "spec
 TSFEL_FEATURE_DOMAINS: tuple[str] =     ["all"] + [tsfel.get_features_by_domain().keys()]
 TSFEL_FEATURES = [feature for domain in tsfel.get_features_by_domain().values() for feature in domain.keys()]
 # Columns
-type Channel = typing.Literal["Ch1", "Ch2"]
-CHANNELS: tuple[str] =       ["Ch1", "Ch2"]
+type Channel = typing.Literal['Frontalis', 'Corrugator_Supercili','Zygomaticus_Major','Levator_Labii_Superioris']
+CHANNELS: tuple[str] =       ['Frontalis', 'Corrugator_Supercili','Zygomaticus_Major','Levator_Labii_Superioris']
 
 type AdditionalColumn = typing.Literal["Participant", "Session", "Trial", "Action Unit", "Feedback"]
 ADDITIONAL_COLUMNS: tuple[str] =      ["Participant", "Session", "Trial", "Action Unit", "Feedback"]
