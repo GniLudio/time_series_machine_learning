@@ -24,7 +24,7 @@ RECORDING_APP_PREVIEW_INSTRUCTION = lambda window: ([
     "I hope you don't have an further questions.",
 ])[window.getvar("label")]
 RECORDING_APP_WEBCAM_INSTRUCTION = lambda window: f"An instruction for the webcam can be placed here."
-RECORDING_APP_TITLE = lambda window: f"TSML - Participant {window.getvar("participant")} - Session {window.getvar("session")} - Trial {window.getvar("trial")} - Label {window.getvar("label")}"
+RECORDING_APP_TITLE = lambda window: f"TSML - Participant {window.getvar('participant')} - Session {window.getvar('session')} - Trial {window.getvar('trial')} - Label {window.getvar('label')}"
 RECORDING_APP_SURVEY_TITLE = "Survey"
 RECORDING_APP_SURVEY_QUESTIONS =  [
     { "type": "Text", "text": "Some Text"},
@@ -42,8 +42,8 @@ type TsfelFeatureDomain = typing.Literal["all", "statistical", "temporal", "spec
 TSFEL_FEATURE_DOMAINS: tuple[str] =     ["all"] + [tsfel.get_features_by_domain().keys()]
 TSFEL_FEATURES = [feature for domain in tsfel.get_features_by_domain().values() for feature in domain.keys()]
 # Columns
-type Channel = typing.Literal["Corrugator_Supercili", "Frontalis", "Levator_Labii_Superioris", "Zygomaticus_Major"]
-CHANNELS: tuple[str] =       ["Corrugator_Supercili", "Frontalis", "Levator_Labii_Superioris", "Zygomaticus_Major"]
+type Channel = typing.Literal["Corrugator", "Frontalis", "Levator_Labii_Superioris", "Zygomaticus_Major"]
+CHANNELS: tuple[str] =       ["Corrugator", "Frontalis", "Levator_Labii_Superioris", "Zygomaticus_Major"]
 
 type AdditionalColumn = typing.Literal["Participant", "Session", "Trial", "Action Unit", "Feedback"]
 ADDITIONAL_COLUMNS: tuple[str] =      ["Participant", "Session", "Trial", "Action Unit", "Feedback"]
