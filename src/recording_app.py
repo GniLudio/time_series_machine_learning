@@ -9,6 +9,7 @@ import os
 import time
 import math
 import pandas
+import pathlib
 from utils import TimeLogger
 
 import tsml
@@ -212,7 +213,7 @@ def setup_videos(window: tkinter.Tk, webcam_path: str, preview_path: str) -> tup
     webcam = Webcam(
         container=webcam_video, 
         filename_or_index=0, 
-        api_preference=cv2.CAP_DSHOW,
+        api_preference=cv2.CAP_ANY,
         flipped=True,
         width=tsml.RECORDING_APP_WEBCAM_RESOLUTION_WIDTH,
         height=tsml.RECORDING_APP_WEBCAM_RESOLUTION_HEIGHT,
@@ -343,8 +344,18 @@ def get_base_output_filename(participant: str, session: int, trial: int | None, 
     if trial is not None:
         filename += f"_t-{trial}"
     if label is not None:
-        filename += f"_l.{label}"
+        filename += f"_l-{label}"
     return filename
+
+def get_filename_parts(filename: str) -> tuple[str, int, int | None, int | None]:
+    base_filename = pathlib.Path(filename).stem
+
+    parts = {}
+    for part in str(base_filename).split("_"):
+        key, value = part.split("-")
+        parts[key] = value
+
+    return [parts["p"], parts["s"], parts.get("t"), parts.get("l")]
 
 def get_webcam_output_filename(filename: str) -> str:
     return os.path.join(tsml.RECORDING_WEBCAM_DIRECTORY, filename + ".avi")
