@@ -8,6 +8,7 @@ import pylsl
 import keyboard
 import time
 import tsfel
+import pandas
 
 import tsml
 
@@ -18,27 +19,38 @@ def fetch_time_series():
     time_series_buffer.extend(samples)
 
 def update_evaluation():
-    global time_series_buffer, tsfel_configuration, model, prediction
-    features = tsfel.time_series_features_extractor(
-        dict_features=tsfel_configuration, 
-        signal_windows=time_series_buffer,
-        fs=tsml.SAMPLING_FREQUENCY,
-        verbose=0,
-    )
-    prediction = model.predict(features)
-    time_series_buffer.clear()
-    print("Updated Prediction", prediction)
+    global time_series_buffer, tsfel_configuration, model, prediction, last_evaluation_time
+    if len(time_series_buffer) == 0:
+        return
+    elif time.time() - last_evaluation_time < frequency / 1000:
+        return
+    elif len(time_series_buffer) < 62:
+        return
+    else:
+        last_evaluation_time = time.time()
+        df = pandas.DataFrame(data=[sample[1:] for sample in time_series_buffer], columns=tsml.CHANNELS)
+        features = tsfel.time_series_features_extractor(
+            config=tsfel_configuration, 
+            timeseries=df,
+            fs=tsml.SAMPLING_FREQUENCY,
+            verbose=0,
+        )
+        prediction = model.predict(features)
+        time_series_buffer.clear()
+        print("Done", prediction)
 
-def on_esc():
+def on_key(event: keyboard.KeyboardEvent):
     global exited
-    exited = True
+    if event.name == "esc":
+        print("Pressed", "Escape")
+        exited = True
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser("Run the live evalution with the following parameters:")
     parser.add_argument("-i", "--input-filename", required=True, type=str, help="The input filename of the trained model.")
-    parser.add_argument("-f", "--frequency", default=100, type=int, help="The evaluation interval. (in ms)")
+    parser.add_argument("-f", "--frequency", default=1000, type=int, help="The evaluation interval. (in ms)")
     parser.add_argument("-d", "--domain", default="all", type=str, choices=tsml.TSFEL_FEATURE_DOMAINS, help="The tsfel domain to be used. (all if omitted)")
-    parser.add_argument("-ws", "--window-size", default=100, type=int, help="The window size. (in ms)")
+    parser.add_argument("-ws", "--window-size", default=1000, type=int, help="The window size. (in ms)")
     args = parser.parse_args()
 
     start_end_logger = TimeLogger(f"live_evaluation.py\tStart\t{args}", "live_evaluation.py\tDone\t{duration:0.2f}")
@@ -65,13 +77,10 @@ if __name__ == '__main__':
     prediction = 0
     last_evaluation_time = 0
     exited = False
-    keyboard.hook(lambda _: on_esc())
+    keyboard.hook(lambda e: on_key(e))
     while not exited:
         fetch_time_series()
-        if time.time() - last_evaluation_time > frequency / 1000:
-            last_evaluation_time = time.time()
-            update_evaluation()
+        update_evaluation()
         time.sleep(0)
-
 
     start_end_logger.end()
