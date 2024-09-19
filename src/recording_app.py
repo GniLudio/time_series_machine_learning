@@ -1,5 +1,5 @@
-import tkinter.dialog
-import tkinter, tkinter.ttk, tkinter.simpledialog, tkinter.messagebox
+import tkinter, tkinter.dialog, tkinter.simpledialog, tkinter.messagebox
+import tkinter.ttk 
 import threading
 import multiprocessing, multiprocessing.connection
 import PIL, PIL.Image, PIL.ImageTk
@@ -9,16 +9,19 @@ import os
 import time
 import math
 import pandas
+import pathlib
 from utils import TimeLogger
 
 import tsml
 
 # STYLE
-THEME = "clam"
 INSTRUCTION_FONT = ("Helvetica", 12)
 BUTTON_FONT = ("Helvetica", 12, "bold")
 FEEDBACK_QUESTION_FONT = ("Helvetica", 12, "bold")
 FEEDBACK_ANSWER_FONT = ("Arial", 10)
+SURVEY_HEADER_FONT = ("Arial", 16, "bold")
+SURVEY_LABEL_FONT = ("Arial", 12)
+SURVEY_SUBMIT_FONT = ("Arial", 12, "bold")
 
 # Events
 NEXT_LABEL_EVENT = '<<NextLabel>>'
@@ -29,27 +32,21 @@ STOP_RECORDING_EVENT = "<<StopRecording>>"
 FEEDBACK_CHANGED_EVENT = "<<FeedbackChanged>>"
 WEBCAM_FIRST_FRAME = "<<WebcamFirstFrame>>"
 
-
-
 # Setup
 def setup_ui() -> tkinter.Tk:
     # Window
     window = tkinter.Tk()
-    window.withdraw()
     window.minsize(width=720, height=480)
-    window.title(string="TSML")
+    window.withdraw()
+    window.title(string="Placeholder title")
     window.grid_rowconfigure(index=0, weight=1)
     window.grid_columnconfigure(index=0, weight=1)
     window.protocol(name='WM_DELETE_WINDOW', func=on_exit)
-    window.bind(
-        sequence=NEXT_LABEL_EVENT, 
-        func=lambda _: window.title(f"TSML - {window.getvar("participant")} - {window.getvar("session")} - {window.getvar("trial")} - {window.getvar("label")}"), 
-        add=True
-    )
+    window.bind(sequence=NEXT_LABEL_EVENT, func=lambda _: window.title(tsml.RECORDING_APP_TITLE(window)), add=True)
 
     # Style
     style = tkinter.ttk.Style(master=window)
-    style.theme_use(themename=THEME )
+    style.theme_use(themename=tsml.RECORDING_APP_THEME )
     style.configure(style='Sash', sashthickness=10)
     style.configure(style='TRadiobutton', focusthickness=0)
     style.configure(style="TButton", font=BUTTON_FONT)
@@ -122,15 +119,15 @@ def setup_ui() -> tkinter.Tk:
     feedback_container = tkinter.ttk.Frame(master=controls_container, name="feedback")
     feedback_container.grid(row=1, column=0, padx=10, pady=0)
 
-    tkinter.ttk.Label(feedback_container, text="How well did you imitate this expression?", font=FEEDBACK_QUESTION_FONT).grid(row=0, column=0, columnspan=7)
-    tkinter.ttk.Label(feedback_container, text="Very Bad", font=FEEDBACK_ANSWER_FONT).grid(row=1, column=0)
+    tkinter.ttk.Label(feedback_container, text=tsml.RECORDING_APP_FEEDBACK_QUESTION, font=FEEDBACK_QUESTION_FONT).grid(row=0, column=0, columnspan=7)
+    tkinter.ttk.Label(feedback_container, text=tsml.RECORDING_APP_FEEDBACK_ANSWERS[0], font=FEEDBACK_ANSWER_FONT).grid(row=1, column=0)
     for i in range(5):
         feedback_radiobutton = tkinter.ttk.Radiobutton(master=feedback_container, variable="feedback", value=i+1)
         feedback_radiobutton.grid(row=1, column=i+1)
     set_radiobutton_states = lambda state: [isinstance(widget, tkinter.ttk.Radiobutton) and widget.configure(state=state) for widget in feedback_container.winfo_children()]
     window.bind(sequence=NEXT_LABEL_EVENT, func=lambda e: set_radiobutton_states('disabled'), add=True)
     window.bind(sequence=STOP_RECORDING_EVENT, func=lambda e: set_radiobutton_states('normal'), add=True)
-    tkinter.ttk.Label(master=feedback_container, text="Very Good", font=FEEDBACK_ANSWER_FONT).grid(row=1, column=6)
+    tkinter.ttk.Label(master=feedback_container, text=tsml.RECORDING_APP_FEEDBACK_ANSWERS[1], font=FEEDBACK_ANSWER_FONT).grid(row=1, column=6)
 
     ### Next Label
     next_button = tkinter.ttk.Button(controls_container, name="next_label", text="NEXT", command=next_label)
@@ -141,12 +138,83 @@ def setup_ui() -> tkinter.Tk:
 
     return window
 
+def open_survey():
+    global window
+    print("Open Survey")
+
+    window.withdraw()
+
+    dialog = tkinter.Toplevel(window)
+    dialog.title(tsml.RECORDING_APP_SURVEY_TITLE)
+    dialog.protocol("WM_DELETE_WINDOW", on_exit)
+    dialog.minsize(width=720, height=480)
+    tkinter.ttk.Style().theme_use(tsml.RECORDING_APP_SURVEY_THEME)
+
+    dialog.configure(padx=10, pady=10)
+    dialog.grid_rowconfigure(index=0, weight=1)
+    dialog.grid_columnconfigure(index=0, weight=1)
+
+    root = tkinter.ttk.Frame(dialog)
+    root.grid_rowconfigure(index=0, weight=1)
+    root.grid_columnconfigure(index=0, weight=1)
+    root.grid(row=0, column=0, sticky="nswe")
+
+    root = tkinter.ttk.LabelFrame(root)
+    root.grid(row=0, column=0)
+
+    variables: list[tkinter.Variable] = []
+    for i, question in enumerate(tsml.RECORDING_APP_SURVEY_QUESTIONS):
+        if question["type"] == "Text":
+            label = tkinter.ttk.Label(root, text=question["text"], anchor="center", font=SURVEY_HEADER_FONT)
+            label.grid(row=i, column=0, columnspan=2, padx=3, pady=3)
+            continue
+
+        label = tkinter.ttk.Label(root, text=question["label"], font=SURVEY_LABEL_FONT)
+        widget, variable = None, None
+        if question["type"] == "Checkbutton":
+            variable = tkinter.BooleanVar(window, value=question["initial"])
+            widget = tkinter.ttk.Checkbutton(root, variable=variable)
+        elif question["type"] == "Radiobutton":
+            variable = tkinter.StringVar(window, value=question["initial"])
+            widget = tkinter.ttk.Frame(root)
+            for i, option in enumerate(question["values"]):
+                radiobutton = tkinter.ttk.Radiobutton(widget, variable=variable, value=option, text=option)
+                radiobutton.grid(row=i, column=0, sticky="w")
+        elif question["type"] == "TextInput":
+            variable = tkinter.StringVar(window, value=question["initial"])
+            widget = tkinter.ttk.Entry(root, textvariable=variable)
+        elif question["type"] == "Dropdown":
+            variable = tkinter.StringVar(window, value=question["initial"])
+            widget = tkinter.ttk.Combobox(root, textvariable=variable, values=question["values"])
+        elif question["type"] == "Slider1":
+            variable = tkinter.StringVar(window, value=question["initial"])
+            widget = tkinter.Scale(root, variable=variable, from_=question['min'], to=question['max'], length=200, orient="horizontal")
+        elif question["type"] == "Slider2":
+            variable = tkinter.StringVar(window, value=question["initial"])
+            widget = tkinter.ttk.Scale(root, variable=variable, from_=question['min'], to=question['max'], length=200)
+        elif question["type"] == "Spinbox":
+            variable = tkinter.StringVar(window, value=question["initial"])
+            widget = tkinter.ttk.Spinbox(root, textvariable=variable, from_=question['min'], to=question['max'], increment=question["step"])
+        if widget and variable:
+            label.grid(row=i, column=0, padx=10, pady=10, sticky="n")
+            widget.grid(row=i, column=1, padx=10, pady=10, sticky="w")
+            variables.append(variable)
+
+    submit_button = tkinter.Button(root, text="Submit", font=SURVEY_SUBMIT_FONT, command=lambda: on_submit_survey(variables))
+    submit_button.grid(row=len(tsml.RECORDING_APP_SURVEY_QUESTIONS)+1, column=0, columnspan=2, padx=10, pady=10)
+    
+    dialog.wait_visibility()
+    dialog.deiconify()
+    dialog.grab_set()
+    dialog.wait_window()
+
 def setup_videos(window: tkinter.Tk, webcam_path: str, preview_path: str) -> tuple['Webcam', dict[int, 'CV2Video']]:
     webcam_video = window.nametowidget(webcam_path)
     webcam = Webcam(
         container=webcam_video, 
         filename_or_index=0, 
         api_preference=cv2.CAP_ANY,
+        flipped=True,
         width=tsml.RECORDING_APP_WEBCAM_RESOLUTION_WIDTH,
         height=tsml.RECORDING_APP_WEBCAM_RESOLUTION_HEIGHT,
         use_fps_delay=False
@@ -160,10 +228,11 @@ def setup_videos(window: tkinter.Tk, webcam_path: str, preview_path: str) -> tup
             container=preview_video,
             filename_or_index=os.path.join(tsml.RESOURCES_PREVIEWS_DIRECTORY, f"preview_{i}.mp4"),
             api_preference=cv2.CAP_ANY,
+            flipped=False,
             width=None,
             height=None,
             use_fps_delay=True
-        ) for i in range(tsml.NUMBER_OF_EXPRESSIONS)
+        ) for i in range(tsml.RECORDING_APP_NUMBER_OF_EXPRESSIONS)
     }
 
     return webcam, previews
@@ -195,18 +264,17 @@ def next_label():
     webcam_buffer = []
     window.setvar(name="feedback", value=0)
 
-    if label+1 < tsml.NUMBER_OF_EXPRESSIONS:
+    if label+1 < tsml.RECORDING_APP_NUMBER_OF_EXPRESSIONS:
         print("Next Label")
         window.setvar(name="label", value=label+1)
     else:
-        next_session = tkinter.messagebox.askyesno(message="Do you want to continue?")
+        next_session = tkinter.messagebox.askyesno(message=tsml.RECORDING_APP_CONTINUE_MESSAGE)
         if next_session:
             print("Next Trial")
             window.setvar(name="trial", value=trial+1)
             window.setvar(name="label", value=0)
         else:
-            print("Didn't continue")
-            on_exit()
+            open_survey()
 
 def update_recording():
     global window, time_series_inlet, time_series_buffer
@@ -257,9 +325,37 @@ def on_exit():
     window_exited = True
     window.destroy()
 
+def on_submit_survey(variables: list[tkinter.Variable]):
+    global window
+    participant, session = window.getvar("participant"), window.getvar("session")
+    values = [str(variable.get()) for variable in variables]
+    filename = get_survey_output_filename(get_base_output_filename(participant, session, None, None))
+    print("Save Survey", participant, session, values, filename)
+
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+    with open(filename, "w") as file:
+        file.write(", ".join(values))
+    
+    on_exit()
+
 # Paths
-def get_base_output_filename(participant: str, session: int, trial: int, label: int) -> str:
-    return f"p{participant}_s{session}_t{trial}_l{label}"
+def get_base_output_filename(participant: str, session: int, trial: int | None, label: int | None) -> str:
+    filename = f"p-{participant}_s-{session}"
+    if trial is not None:
+        filename += f"_t-{trial}"
+    if label is not None:
+        filename += f"_l-{label}"
+    return filename
+
+def get_filename_parts(filename: str) -> tuple[str, int, int | None, int | None]:
+    base_filename = pathlib.Path(filename).stem
+
+    parts = {}
+    for part in str(base_filename).split("_"):
+        key, value = part.split("-")
+        parts[key] = value
+
+    return [parts["p"], parts["s"], parts.get("t"), parts.get("l")]
 
 def get_webcam_output_filename(filename: str) -> str:
     return os.path.join(tsml.RECORDING_WEBCAM_DIRECTORY, filename + ".avi")
@@ -270,6 +366,9 @@ def get_time_series_output_filename(filename: str) -> str:
 def get_feedback_output_filename(filename: str) -> str:
     return os.path.join(tsml.RECORDING_FEEDBACK_DIRECTORY, filename + ".txt")
 
+def get_survey_output_filename(filename: str) -> str:
+    return os.path.join(tsml.RECORDING_SURVEY_DIRECTORY, filename + ".txt")
+
 def does_session_exist(participant: str, session: int) -> bool:
     return any(os.path.exists(filename) for filename in [
         get_webcam_output_filename(get_base_output_filename(participant, session, 0, 0)),
@@ -279,10 +378,11 @@ def does_session_exist(participant: str, session: int) -> bool:
 
 # Classes
 class CV2Video:
-    def __init__(self, container: tkinter.Label, filename_or_index: str | int, api_preference: int, width: int | None, height: int | None, use_fps_delay: bool, frame_number: int = 0):
+    def __init__(self, container: tkinter.Label, filename_or_index: str | int, api_preference: int, flipped: bool, width: int | None, height: int | None, use_fps_delay: bool, frame_number: int = 0):
         self.container = container
         self.filename_or_index = filename_or_index
         self.api_preference = api_preference
+        self.flipped = flipped
         self.width = width
         self.height = height
         self.use_fps_delay = use_fps_delay
@@ -400,7 +500,10 @@ class CV2Video:
         self._image_needs_update = False
         if self._frame is not None:
             optimal_size = self._get_optimal_size()
-            image = cv2.resize(self._frame,optimal_size)
+            image = self._frame
+            if self.flipped:
+                image = cv2.flip(image, 1)
+            image = cv2.resize(image,optimal_size)
             image = cv2.cvtColor(image,cv2.COLOR_BGR2RGBA)
             image = PIL.Image.fromarray(image)
             image = PIL.ImageTk.PhotoImage(image)
@@ -422,7 +525,7 @@ class CV2Video:
             return (max_width, math.ceil(max_width / video_aspect_ratio))
 
     def __reduce__(self) -> str | tuple[object, ...]:
-        return (self.__class__, (None, self.filename_or_index, self.api_preference, self.width, self.height, self.use_fps_delay, self.frame_number))
+        return (self.__class__, (None, self.filename_or_index, self.api_preference, self.flipped, self.width, self.height, self.use_fps_delay, self.frame_number))
 
     def __del__(self):
         if self._frame_collector is not None:
@@ -503,8 +606,8 @@ if __name__ == '__main__':
 
     # Main Loop
     print("Start Main Loop")
-    window.deiconify()
     window.state("zoomed")
+    window.deiconify()
     while not window_exited:
         update_recording()
         webcam.update()
