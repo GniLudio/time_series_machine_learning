@@ -9,7 +9,7 @@ dependencies:
   - pip:
     - pillow==10.4.0
     - pylsl==1.16.2
-    - tsfel==0.1.8
+    - tsfel==0.1.9
     - scikit-learn==1.5.1
     - opencv-python==4.10.0.84
     - matplotlib==3.9.2
