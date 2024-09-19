@@ -10,9 +10,11 @@ import time
 import math
 import pandas
 import pathlib
-from utils import TimeLogger
+from utils import TimeLogger, ask_selection
 
 import tsml
+
+EMG_POSITIONS = ["a", "b"]
 
 # STYLE
 INSTRUCTION_FONT = ("Helvetica", 12)
@@ -265,6 +267,7 @@ def next_label():
     
     participant = window.getvar("participant")
     session = window.getvar("session")
+    emg_positioning = window.getvar("emg_positioning")
     trial = window.getvar("trial")
     label = window.getvar("label")
 
@@ -272,7 +275,7 @@ def next_label():
         target=save_recording, 
         daemon=False, 
         args=(
-            participant, session, trial, label, 
+            participant, session, emg_positioning, trial, label, 
             time_series_buffer, webcam_buffer, window.getvar("feedback")
         )
     ).start()
@@ -307,10 +310,10 @@ def update_recording():
     if window.getvar("recording_active") and time.time() - window.getvar("recording_start") >= tsml.RECORDING_APP_EXPRESSION_DURATION:
         window.setvar(name="recording_active", value=False)
         
-def save_recording(participant: str, session: int, trial: int, label: int, time_series_data: tsml.TimeSeriesBuffer, webcam_data: tsml.WebcamBuffer, feedback_data: int):
+def save_recording(participant: str, session: int, emg_positioning: str, trial: int, label: int, time_series_data: tsml.TimeSeriesBuffer, webcam_data: tsml.WebcamBuffer, feedback_data: int):
     print("Save Recording", participant, session, trial, label)
 
-    base_filename = get_base_output_filename(participant=participant, session=session, trial=trial, label=label)
+    base_filename = get_base_output_filename(participant=participant, session=session, emg_positioning=emg_positioning, trial=trial, label=label)
 
     webcam_filename = get_webcam_output_filename(base_filename)
     os.makedirs(os.path.dirname(webcam_filename), exist_ok=True)
@@ -344,27 +347,26 @@ def on_exit():
 
 def on_submit_survey(variables: list[tkinter.Variable]):
     global window
-    participant, session = window.getvar("participant"), window.getvar("session")
+    participant, session, emg_positioning = window.getvar("participant"), window.getvar("session"), window.getvar("emg_positioning")
     values = [str(variable.get()) for variable in variables]
-    filename = get_survey_output_filename(get_base_output_filename(participant, session, None, None))
+    filename = get_survey_output_filename(get_base_output_filename(participant, session, emg_positioning, None, None))
     print("Save Survey", participant, session, values, filename)
 
     os.makedirs(os.path.dirname(filename), exist_ok=True)
-    with open(filename, "w") as file:
-        file.write(", ".join(values))
+    pandas.DataFrame(data=values).to_csv(filename)
     
     on_exit()
 
 # Paths
-def get_base_output_filename(participant: str, session: int, trial: int | None, label: int | None) -> str:
-    filename = f"p-{participant}_s-{session}"
+def get_base_output_filename(participant: str, session: int, emg_positioning: str, trial: int | None, label: int | None) -> str:
+    filename = f"p-{participant}_s-{session}_po-{emg_positioning}"
     if trial is not None:
         filename += f"_t-{trial}"
     if label is not None:
         filename += f"_l-{label}"
     return filename
 
-def get_filename_parts(filename: str) -> tuple[str, int, int | None, int | None]:
+def get_filename_parts(filename: str) -> dict[str, str]:
     base_filename = pathlib.Path(filename).stem
 
     parts = {}
@@ -372,7 +374,7 @@ def get_filename_parts(filename: str) -> tuple[str, int, int | None, int | None]
         key, value = part.split("-")
         parts[key] = value
 
-    return [parts["p"], parts["s"], parts.get("t"), parts.get("l")]
+    return parts
 
 def get_webcam_output_filename(filename: str) -> str:
     return os.path.join(tsml.RECORDING_WEBCAM_DIRECTORY, filename + ".avi")
@@ -388,9 +390,9 @@ def get_survey_output_filename(filename: str) -> str:
 
 def does_session_exist(participant: str, session: int) -> bool:
     return any(os.path.exists(filename) for filename in [
-        get_webcam_output_filename(get_base_output_filename(participant, session, 0, 0)),
-        get_time_series_output_filename(get_base_output_filename(participant, session, 0, 0)),
-        get_feedback_output_filename(get_base_output_filename(participant, session, 0, 0)),
+        get_webcam_output_filename(get_base_output_filename(participant, session, EMG_POSITIONS[0], 0, 0)),
+        get_time_series_output_filename(get_base_output_filename(participant, session, EMG_POSITIONS[0], 0, 0)),
+        get_feedback_output_filename(get_base_output_filename(participant, session, EMG_POSITIONS[0], 0, 0)),
     ])
 
 # Classes
@@ -612,6 +614,9 @@ if __name__ == '__main__':
 
     # Indentifier
     with TimeLogger("Setup Identifier", "Done", separator="\t"):
+
+        emg_positioning = ask_selection(question="Which EMG positioning is used?", values=["A", "B"], title="EMG Positioning", master=window, font=FEEDBACK_QUESTION_FONT)
+        window.setvar(name="emg_positioning", value=emg_positioning)
         participant_value = tkinter.simpledialog.askstring(title="Participant", prompt="Enter the participant identifier:\t\t", parent=window) or 'test'
         session_value = next(i for i in range(tsml.RECORDING_APP_MAX_SESSION_NUMBER) if not does_session_exist(participant=participant_value, session=i))
 
