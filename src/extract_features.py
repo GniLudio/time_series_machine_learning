@@ -62,8 +62,8 @@ if __name__ == '__main__':
         for i, (group_key, group_indices) in enumerate(grouped_data.items(), start=1):
             with TimeLogger(f"\t{str(i).rjust(len(str(len(grouped_data))))} / {str(len(grouped_data))}\t{group_key}".ljust(45), "Done\t{duration:.2f}", separator="\t"):
                 features = tsfel.time_series_features_extractor(
-                    dict_features = configuration,
-                    signal_windows = dataset.iloc[group_indices][tsml.CHANNELS],
+                    config = configuration,
+                    timeseries = dataset.iloc[group_indices][tsml.CHANNELS],
                     fs = tsml.SAMPLING_FREQUENCY,
                     window_size = window_size,
                     overlap = window_overlap / 100,
