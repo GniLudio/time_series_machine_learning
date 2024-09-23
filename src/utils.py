@@ -38,13 +38,9 @@ def ask_selection(question: str, values: list[str], title: str, font: "tkinter.f
 
     tkinter.Label(dialog, text=question, font=font).grid(row=0, column=0, padx=5, pady=5, columnspan=len(values))
 
-    selected: str = None
-    def on_select(selected: str):
-        selected = selected
-        dialog.destroy()
-
+    variable = tkinter.StringVar(dialog, value=None)
     for i, choice in enumerate(values):
-        tkinter.ttk.Button(dialog, text=str(choice), command=lambda c=choice: on_select(c)).grid(row = 1, column=i, padx=5, pady=5)
+        tkinter.ttk.Button(dialog, text=str(choice), command=lambda c=choice: (variable.set(c), dialog.destroy())).grid(row = 1, column=i, padx=5, pady=5)
 
     dialog.wait_window()
-    return selected
+    return variable.get()

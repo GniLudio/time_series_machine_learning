@@ -35,7 +35,7 @@ FEEDBACK_CHANGED_EVENT = "<<FeedbackChanged>>"
 WEBCAM_FIRST_FRAME = "<<WebcamFirstFrame>>"
 
 # Debugging
-SHOW_THEME_SELECTOR = True
+SHOW_THEME_SELECTOR = False
 
 # Setup
 def setup_ui() -> tkinter.Tk:
@@ -125,7 +125,7 @@ def setup_ui() -> tkinter.Tk:
     start_recording_button.grid(row=0, column=0, sticky="s", padx=10, pady=10)
     window.bind(sequence=WEBCAM_FIRST_FRAME, func=lambda _: start_recording_button.configure(state="active", text="START"), add=True)
     window.bind(sequence=START_RECORDING_EVENT, func=lambda _: start_recording_button.configure(state="disabled", text="RECORDING"), add=True)
-    window.bind(sequence=STOP_RECORDING_EVENT, func=lambda _: start_recording_button.configure(text="DONE"), add=True)
+    window.bind(sequence=STOP_RECORDING_EVENT, func=lambda _: start_recording_button.configure(state="active", text="RESTART"), add=True)
     window.bind(sequence=WEBCAM_FIRST_FRAME, func=lambda _: window.bind(sequence=NEXT_LABEL_EVENT, func=lambda _: start_recording_button.configure(state="active", text="START"), add=True), add=True)
 
     ### Feedback
@@ -264,19 +264,28 @@ def toggle_preview():
 
 def next_label():
     global window, previews, time_series_buffer, webcam_buffer, feedback_variable, webcam
-    
-    participant = window.getvar("participant")
-    session = window.getvar("session")
-    emg_positioning = window.getvar("emg_positioning")
-    trial = window.getvar("trial")
-    label = window.getvar("label")
+
+    participant_value = window.getvar("participant")
+    session_value = window.getvar("session")
+    emg_positioning_value = window.getvar("emg_positioning")
+    trial_value = window.getvar("trial")
+    label_value = window.getvar("label")
+    time_series_buffer_value = time_series_buffer.copy()
+    webcam_buffer_value = webcam_buffer.copy()
+    feedback_value = window.getvar("feedback")
 
     threading.Thread(
         target=save_recording, 
         daemon=False, 
         args=(
-            participant, session, emg_positioning, trial, label, 
-            time_series_buffer, webcam_buffer, window.getvar("feedback")
+            participant_value, 
+            session_value, 
+            emg_positioning_value, 
+            trial_value, 
+            label_value, 
+            time_series_buffer_value, 
+            webcam_buffer_value, 
+            feedback_value
         )
     ).start()
 
@@ -284,14 +293,14 @@ def next_label():
     webcam_buffer = []
     window.setvar(name="feedback", value=0)
 
-    if label+1 < tsml.RECORDING_APP_NUMBER_OF_EXPRESSIONS:
+    if label_value+1 < tsml.RECORDING_APP_NUMBER_OF_EXPRESSIONS:
         print("Next Label")
-        window.setvar(name="label", value=label+1)
+        window.setvar(name="label", value=label_value+1)
     else:
         next_session = tkinter.messagebox.askyesno(message=tsml.RECORDING_APP_CONTINUE_MESSAGE)
         if next_session:
             print("Next Trial")
-            window.setvar(name="trial", value=trial+1)
+            window.setvar(name="trial", value=trial_value+1)
             window.setvar(name="label", value=0)
         else:
             open_survey()
@@ -311,7 +320,7 @@ def update_recording():
         window.setvar(name="recording_active", value=False)
         
 def save_recording(participant: str, session: int, emg_positioning: str, trial: int, label: int, time_series_data: tsml.TimeSeriesBuffer, webcam_data: tsml.WebcamBuffer, feedback_data: int):
-    print("Save Recording", participant, session, trial, label)
+    print("Save Recording", f"'{participant}'", f"'{emg_positioning}'", f"'{session}'", f"'{trial}'", f"'{label}'")
 
     base_filename = get_base_output_filename(participant=participant, session=session, emg_positioning=emg_positioning, trial=trial, label=label)
 
@@ -615,17 +624,21 @@ if __name__ == '__main__':
     # Indentifier
     with TimeLogger("Setup Identifier", "Done", separator="\t"):
 
-        emg_positioning = ask_selection(question="Which EMG positioning is used?", values=["A", "B"], title="EMG Positioning", master=window, font=FEEDBACK_QUESTION_FONT)
-        window.setvar(name="emg_positioning", value=emg_positioning)
         participant_value = tkinter.simpledialog.askstring(title="Participant", prompt="Enter the participant identifier:\t\t", parent=window) or 'test'
+        emg_positioning_value = ask_selection(question="Which EMG positioning is used?", values=["A", "B"], title="EMG Positioning", master=window, font=FEEDBACK_QUESTION_FONT)
         session_value = next(i for i in range(tsml.RECORDING_APP_MAX_SESSION_NUMBER) if not does_session_exist(participant=participant_value, session=i))
 
         participant = tkinter.StringVar(master=window, name="participant", value=participant_value)
+        print("HELLO WORLD", f"'{emg_positioning_value}'")
+        emg_positioning = tkinter.StringVar(master=window, name="emg_positioning", value=emg_positioning_value)
         session = tkinter.IntVar(master=window, name="session", value=session_value)
         trial = tkinter.IntVar(master=window, name="trial", value=0)
         label = tkinter.IntVar(master=window, name="label", value=0)
         label.trace_add(mode="write", callback= lambda _, __, ___:  window.event_generate(sequence=NEXT_LABEL_EVENT))
         window.event_generate(sequence=NEXT_LABEL_EVENT)
+
+    if session.get() == 0:
+        tkinter.messagebox.showinfo(title="Instructions", message=tsml.RECORDING_APP_INSTRUCTIONS)
 
     # Main Loop
     print("Start Main Loop")
