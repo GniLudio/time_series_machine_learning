@@ -1,5 +1,6 @@
 import time
 import tkinter, tkinter.ttk
+import pathlib
 
 class TimeLogger():
     def __init__(self, start_message: str | None, end_message: str | None, separator: str = "\n") -> None:
@@ -40,7 +41,21 @@ def ask_selection(question: str, values: list[str], title: str, font: "tkinter.f
 
     variable = tkinter.StringVar(dialog, value=None)
     for i, choice in enumerate(values):
-        tkinter.ttk.Button(dialog, text=str(choice), command=lambda c=choice: (variable.set(c), dialog.destroy())).grid(row = 1, column=i, padx=5, pady=5)
+        button = tkinter.ttk.Button(dialog, text=str(choice), command=lambda c=choice: (variable.set(c), dialog.destroy()))
+        button.grid(row = 1, column=i, padx=5, pady=5)
 
     dialog.wait_window()
     return variable.get()
+
+def get_filename_parts(filename: str) -> dict[str, str]:
+    base_filename = pathlib.Path(filename).stem
+
+    parts = {}
+    for part in str(base_filename).split("_"):
+        key, value = part.split("-")
+        parts[key] = value
+
+    return parts
+
+def join_filename_parts(parts: dict[str, any]) -> str:
+    return "_".join((f"{key}-{value}") for key, value in parts.items() if value is not None)

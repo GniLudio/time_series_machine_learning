@@ -10,7 +10,7 @@ import time
 import math
 import pandas
 import pathlib
-from utils import TimeLogger, ask_selection
+from utils import TimeLogger, ask_selection, join_filename_parts
 
 import tsml
 
@@ -250,9 +250,12 @@ def setup_videos(window: tkinter.Tk, webcam_path: str, preview_path: str) -> tup
             flipped=False,
             width=None,
             height=None,
-            use_fps_delay=True
+            use_fps_delay=True,
+            playback_speed=tsml.RECORDING_APP_PREVIEW_PLAYBACK_SPEED,
         ) for i in range(tsml.RECORDING_APP_NUMBER_OF_EXPRESSIONS)
     }
+    for preview in previews.values():
+        window.bind(sequence=NEXT_LABEL_EVENT, func=lambda _, p=preview:p.pause(), add=True)
 
     return webcam, previews
 
@@ -263,66 +266,54 @@ def toggle_preview():
     previews[window.getvar("label")].toggle_play_pause()
 
 def next_label():
-    global window, previews, time_series_buffer, webcam_buffer, feedback_variable, webcam
+    global window, webcam_buffer, time_series_buffer
 
-    participant_value = window.getvar("participant")
-    session_value = window.getvar("session")
-    emg_positioning_value = window.getvar("emg_positioning")
-    trial_value = window.getvar("trial")
-    label_value = window.getvar("label")
-    time_series_buffer_value = time_series_buffer.copy()
-    webcam_buffer_value = webcam_buffer.copy()
-    feedback_value = window.getvar("feedback")
+    print("Asdf", len(time_series_buffer))
 
     threading.Thread(
         target=save_recording, 
         daemon=False, 
         args=(
-            participant_value, 
-            session_value, 
-            emg_positioning_value, 
-            trial_value, 
-            label_value, 
-            time_series_buffer_value, 
-            webcam_buffer_value, 
-            feedback_value
+            window.getvar("participant"), 
+            window.getvar("session"), 
+            window.getvar("emg_positioning"), 
+            window.getvar("trial"), 
+            window.getvar("label"), 
+            time_series_buffer.copy(), 
+            webcam_buffer.copy(), 
+            window.getvar("feedback")
         )
     ).start()
 
-    time_series_buffer = []
-    webcam_buffer = []
-    window.setvar(name="feedback", value=0)
-
-    if label_value+1 < tsml.RECORDING_APP_NUMBER_OF_EXPRESSIONS:
+    if window.getvar("label")+1 < tsml.RECORDING_APP_NUMBER_OF_EXPRESSIONS:
         print("Next Label")
-        window.setvar(name="label", value=label_value+1)
+        window.setvar(name="label", value=window.getvar("label")+1)
     else:
         next_session = tkinter.messagebox.askyesno(message=tsml.RECORDING_APP_CONTINUE_MESSAGE)
         if next_session:
             print("Next Trial")
-            window.setvar(name="trial", value=trial_value+1)
+            window.setvar(name="trial", value=window.getvar("trial")+1)
             window.setvar(name="label", value=0)
         else:
             open_survey()
 
 def update_recording():
-    global window, time_series_inlet, time_series_buffer
+    global window, time_series_buffer, time_series_inlet
 
     if time_series_inlet is not None:
         if not window.getvar(name="recording_active"):
             time_series_inlet.flush()
         else:
             (samples, _) = time_series_inlet.pull_chunk()
-            if samples is not None:
+            if samples is not None and len(samples) > 0 :
                 time_series_buffer.extend(samples)
 
     if window.getvar("recording_active") and time.time() - window.getvar("recording_start") >= tsml.RECORDING_APP_EXPRESSION_DURATION:
         window.setvar(name="recording_active", value=False)
         
 def save_recording(participant: str, session: int, emg_positioning: str, trial: int, label: int, time_series_data: tsml.TimeSeriesBuffer, webcam_data: tsml.WebcamBuffer, feedback_data: int):
-    print("Save Recording", f"'{participant}'", f"'{emg_positioning}'", f"'{session}'", f"'{trial}'", f"'{label}'")
-
     base_filename = get_base_output_filename(participant=participant, session=session, emg_positioning=emg_positioning, trial=trial, label=label)
+    print("Save Recording", base_filename)
 
     webcam_filename = get_webcam_output_filename(base_filename)
     os.makedirs(os.path.dirname(webcam_filename), exist_ok=True)
@@ -358,8 +349,16 @@ def on_submit_survey(variables: list[tkinter.Variable]):
     global window
     participant, session, emg_positioning = window.getvar("participant"), window.getvar("session"), window.getvar("emg_positioning")
     values = [str(variable.get()) for variable in variables]
-    filename = get_survey_output_filename(get_base_output_filename(participant, session, emg_positioning, None, None))
-    print("Save Survey", participant, session, values, filename)
+    filename = get_survey_output_filename(
+        get_base_output_filename(
+            participant=participant, 
+            session=session, 
+            emg_positioning=emg_positioning, 
+            trial=None, 
+            label=None
+        )
+    )
+    print("Save Survey", filename, values)
 
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     pandas.DataFrame(data=values).to_csv(filename)
@@ -368,22 +367,13 @@ def on_submit_survey(variables: list[tkinter.Variable]):
 
 # Paths
 def get_base_output_filename(participant: str, session: int, emg_positioning: str, trial: int | None, label: int | None) -> str:
-    filename = f"p-{participant}_s-{session}_po-{emg_positioning}"
-    if trial is not None:
-        filename += f"_t-{trial}"
-    if label is not None:
-        filename += f"_l-{label}"
-    return filename
-
-def get_filename_parts(filename: str) -> dict[str, str]:
-    base_filename = pathlib.Path(filename).stem
-
-    parts = {}
-    for part in str(base_filename).split("_"):
-        key, value = part.split("-")
-        parts[key] = value
-
-    return parts
+    return join_filename_parts({
+        'pa': participant,
+        'se': session,
+        'po': emg_positioning,
+        'tr': trial,
+        'la': label,
+    })
 
 def get_webcam_output_filename(filename: str) -> str:
     return os.path.join(tsml.RECORDING_WEBCAM_DIRECTORY, filename + ".avi")
@@ -406,7 +396,7 @@ def does_session_exist(participant: str, session: int) -> bool:
 
 # Classes
 class CV2Video:
-    def __init__(self, container: tkinter.Label, filename_or_index: str | int, api_preference: int, flipped: bool, width: int | None, height: int | None, use_fps_delay: bool, frame_number: int = 0):
+    def __init__(self, container: tkinter.Label, filename_or_index: str | int, api_preference: int, flipped: bool, width: int | None, height: int | None, use_fps_delay: bool, playback_speed: float = 1, frame_number: int = 0):
         self.container = container
         self.filename_or_index = filename_or_index
         self.api_preference = api_preference
@@ -414,6 +404,7 @@ class CV2Video:
         self.width = width
         self.height = height
         self.use_fps_delay = use_fps_delay
+        self.playback_speed = playback_speed
         self.frame_number = frame_number
 
         self._frame_collector: multiprocessing.Process | None = None
@@ -428,6 +419,8 @@ class CV2Video:
 
             if isinstance(self.filename_or_index, str):
                 self._collect_first_frame()
+                self._frame = self._first_frame
+                self.set_image_dirty()
         else:
             self._frame_receiver = None
             self._frame_sender = None
@@ -444,11 +437,14 @@ class CV2Video:
 
     def pause(self):
         if self._frame_collector is not None:
-            self.container.event_generate(sequence=VIDEO_PAUSE_EVENT)
             self._frame_collector.terminate()
             self._frame_collector.join()
             self._frame_collector.close()
             self._frame_collector = None
+
+            self.container.event_generate(sequence=VIDEO_PAUSE_EVENT)
+            self._frame = self._first_frame
+            self.set_image_dirty()
 
     def toggle_play_pause(self):
         if self._frame_collector is None:
@@ -486,8 +482,7 @@ class CV2Video:
             capture = self._create_capture()
             success, frame = capture.read()
             if success:
-                self._frame = frame
-                self.set_image_dirty()
+                self._first_frame = frame
         finally:
             capture.release()
 
@@ -497,7 +492,7 @@ class CV2Video:
             capture = self._create_capture()
 
             if self.use_fps_delay:
-                duration_per_frame = 1 / (capture.get(cv2.CAP_PROP_FPS) or 1)
+                duration_per_frame = 1 / (capture.get(cv2.CAP_PROP_FPS) or 1) / self.playback_speed
                 next_frame_time = time.time()
             while not sender.closed:
                 success, frame = capture.read()
@@ -553,7 +548,7 @@ class CV2Video:
             return (max_width, math.ceil(max_width / video_aspect_ratio))
 
     def __reduce__(self) -> str | tuple[object, ...]:
-        return (self.__class__, (None, self.filename_or_index, self.api_preference, self.flipped, self.width, self.height, self.use_fps_delay, self.frame_number))
+        return (self.__class__, (None, self.filename_or_index, self.api_preference, self.flipped, self.width, self.height, self.use_fps_delay, self.playback_speed, self.frame_number))
 
     def __del__(self):
         if self._frame_collector is not None:
@@ -604,17 +599,18 @@ if __name__ == '__main__':
         recording_active_variable = tkinter.BooleanVar(master=window, name="recording_active", value=False)
         recording_start_variable = tkinter.Variable(master=window, name="recording_start", value=0.0)
         recording_active_variable.trace_add(mode="write", callback=lambda _, __, ___: print(recording_active_variable.get() and "Start Recording" or "Stop Recording"))
-        recording_active_variable.trace_add(mode="write", callback=lambda _, __, ___: not recording_active_variable.get() and time_series_buffer.clear() or None)
         recording_active_variable.trace_add(mode="write", callback=lambda _, __, ___: window.event_generate(recording_active_variable.get() and START_RECORDING_EVENT or STOP_RECORDING_EVENT))
         recording_active_variable.trace_add(mode="write", callback=lambda _, __, ___: recording_start_variable.set(value=recording_active_variable.get() and time.time() or recording_start_variable.get()))
 
         time_series_stream_info = next((stream_info for stream_info in pylsl.resolve_streams() if stream_info.name() == "OpenSignals"), None)
         time_series_inlet = time_series_stream_info is not None and pylsl.StreamInlet(time_series_stream_info) or None
-        time_series_buffer: tsml.TimeSeriesBuffer = []
         feedback_variable: tkinter.IntVar = tkinter.IntVar(window, name="feedback")
-        webcam_buffer: tsml.WebcamBuffer = []
-
         feedback_variable.trace_add(mode="write", callback=lambda _, __, ___: window.event_generate(FEEDBACK_CHANGED_EVENT))
+        time_series_buffer: list[list[float]] = []
+        webcam_buffer: list[list[int]] = []
+        window.bind(sequence=START_RECORDING_EVENT, func=lambda _: (print("Clear Time Series"), time_series_buffer.clear()), add=True)
+        window.bind(sequence=START_RECORDING_EVENT, func=lambda _: webcam_buffer.clear(), add=True)
+        window.bind(sequence=NEXT_LABEL_EVENT, func=lambda _: feedback_variable.set(-1), add=True)
 
         if time_series_inlet is None:
             tkinter.messagebox.showerror(message="No OpenSignals stream found\nPlease restart the app")
@@ -623,32 +619,29 @@ if __name__ == '__main__':
 
     # Indentifier
     with TimeLogger("Setup Identifier", "Done", separator="\t"):
-
         participant_value = tkinter.simpledialog.askstring(title="Participant", prompt="Enter the participant identifier:\t\t", parent=window) or 'test'
         emg_positioning_value = ask_selection(question="Which EMG positioning is used?", values=["A", "B"], title="EMG Positioning", master=window, font=FEEDBACK_QUESTION_FONT)
         session_value = next(i for i in range(tsml.RECORDING_APP_MAX_SESSION_NUMBER) if not does_session_exist(participant=participant_value, session=i))
 
-        participant = tkinter.StringVar(master=window, name="participant", value=participant_value)
-        print("HELLO WORLD", f"'{emg_positioning_value}'")
-        emg_positioning = tkinter.StringVar(master=window, name="emg_positioning", value=emg_positioning_value)
-        session = tkinter.IntVar(master=window, name="session", value=session_value)
-        trial = tkinter.IntVar(master=window, name="trial", value=0)
-        label = tkinter.IntVar(master=window, name="label", value=0)
-        label.trace_add(mode="write", callback= lambda _, __, ___:  window.event_generate(sequence=NEXT_LABEL_EVENT))
+        participant_variable = tkinter.StringVar(master=window, name="participant", value=participant_value)
+        emg_positioning_variable = tkinter.StringVar(master=window, name="emg_positioning", value=emg_positioning_value)
+        session_variable = tkinter.IntVar(master=window, name="session", value=session_value)
+        trial_variable = tkinter.IntVar(master=window, name="trial", value=0)
+        label_variable = tkinter.IntVar(master=window, name="label", value=0)
+        label_variable.trace_add(mode="write", callback= lambda _, __, ___:  window.event_generate(sequence=NEXT_LABEL_EVENT))
         window.event_generate(sequence=NEXT_LABEL_EVENT)
-
-    if session.get() == 0:
-        tkinter.messagebox.showinfo(title="Instructions", message=tsml.RECORDING_APP_INSTRUCTIONS)
 
     # Main Loop
     print("Start Main Loop")
     window.state("zoomed")
     window.deiconify()
+    if session_variable.get() == 0:
+        tkinter.messagebox.showinfo(title="Instructions", message=tsml.RECORDING_APP_INSTRUCTIONS)
     while not window_exited:
         update_recording()
         webcam.update()
-        if not previews[label.get()].update():
-            previews[label.get()].reset()
+        if not previews[window.getvar("label")].update():
+            previews[window.getvar("label")].reset()
         window.update()
     
     start_end_logger.end()
