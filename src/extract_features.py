@@ -12,12 +12,17 @@ def load_dataset() -> pandas.DataFrame:
     df = pandas.DataFrame()
 
     for filename in os.listdir(tsml.RECORDING_TIMESERIES_DIRECTORY):
-        df = pandas.concat([df, pandas.read_csv(
+        df_file = pandas.read_csv(
             filepath_or_buffer=os.path.join(tsml.RECORDING_TIMESERIES_DIRECTORY, filename), 
             index_col=False, 
-            dtype=tsml.DATASET_DTYPE
-        )])
-
+            dtype=tsml.DATASET_DTYPE,
+            header=60,
+            sep="\t",
+            usecols = [1, 2, 3, 4, 5, 26],
+            names = ["CH1","CH2","CH3","CH4","CH5", "Label"]
+        )
+        df_file["Filename"] = filename
+        df = pandas.concat([df, df_file])
     return df
 
 if __name__ == '__main__':

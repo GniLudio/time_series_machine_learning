@@ -42,12 +42,12 @@ type TsfelFeatureDomain = typing.Literal["all", "statistical", "temporal", "spec
 TSFEL_FEATURE_DOMAINS: tuple[str] =     ["all"] + [tsfel.get_features_by_domain().keys()]
 TSFEL_FEATURES = [feature for domain in tsfel.get_features_by_domain().values() for feature in domain.keys()]
 # Columns
-type Channel = typing.Literal["Ch1", "Ch2"]
-CHANNELS: tuple[str] =       ["Ch1", "Ch2"]
+type Channel = typing.Literal["CH1","CH2","CH3","CH4","CH5"]
+CHANNELS: tuple[str] =       ["CH1","CH2","CH3","CH4","CH5"]
 
-type AdditionalColumn = typing.Literal["Participant", "Session", "Trial", "Action Unit", "Feedback"]
-ADDITIONAL_COLUMNS: tuple[str] =      ["Participant", "Session", "Trial", "Action Unit", "Feedback"]
-LABEL_COLUMN = "Action Unit"
+type AdditionalColumn = typing.Literal["Label", "Filename"]
+ADDITIONAL_COLUMNS: tuple[str] =      ["Label", "Filename"]
+LABEL_COLUMN = "Label"
 PARTICIPANT_COLUMN = "Participant"
 
 type WebcamBuffer = list[cv2.typing.MatLike]
