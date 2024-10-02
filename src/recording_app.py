@@ -2,6 +2,7 @@ import tkinter, tkinter.dialog, tkinter.simpledialog, tkinter.messagebox
 import tkinter.ttk 
 import threading
 import multiprocessing, multiprocessing.connection
+import threading
 import PIL, PIL.Image, PIL.ImageTk
 import pylsl
 import cv2
@@ -252,6 +253,7 @@ def setup_videos(window: tkinter.Tk, webcam_path: str, preview_path: str) -> tup
             height=None,
             use_fps_delay=True,
             playback_speed=tsml.RECORDING_APP_PREVIEW_PLAYBACK_SPEED,
+            use_threading=True
         ) for i in range(tsml.RECORDING_APP_NUMBER_OF_EXPRESSIONS)
     }
     for preview in previews.values():
@@ -396,7 +398,7 @@ def does_session_exist(participant: str, session: int) -> bool:
 
 # Classes
 class CV2Video:
-    def __init__(self, container: tkinter.Label, filename_or_index: str | int, api_preference: int, flipped: bool, width: int | None, height: int | None, use_fps_delay: bool, playback_speed: float = 1, frame_number: int = 0):
+    def __init__(self, container: tkinter.Label, filename_or_index: str | int, api_preference: int, flipped: bool, width: int | None, height: int | None, use_fps_delay: bool, playback_speed: float = 1, frame_number: int = 0, use_threading: bool = False):
         self.container = container
         self.filename_or_index = filename_or_index
         self.api_preference = api_preference
@@ -406,13 +408,17 @@ class CV2Video:
         self.use_fps_delay = use_fps_delay
         self.playback_speed = playback_speed
         self.frame_number = frame_number
+        self.use_threading = use_threading
 
-        self._frame_collector: multiprocessing.Process | None = None
+        self._frame_collector: threading.Thread | multiprocessing.Process | None = None
         self._frame: cv2.typing.MatLike | None = None
         self._image: PIL.ImageTk.PhotoImage | None = None
         self._image_needs_update: bool = False
 
-        if multiprocessing.current_process().name == "MainProcess":
+        self._frame_receiver: multiprocessing.connection.Connection | None = None
+        self._frame_sender: multiprocessing.connection.Connection | None = None
+
+        if self._is_main():
             self.container.bind("<Configure>", func=lambda _: self.set_image_dirty(), add=True)
 
             (self._frame_receiver, self._frame_sender) = multiprocessing.Pipe(duplex=False)
@@ -421,26 +427,37 @@ class CV2Video:
                 self._collect_first_frame()
                 self._frame = self._first_frame
                 self.set_image_dirty()
-        else:
-            self._frame_receiver = None
-            self._frame_sender = None
+
 
     def play(self):
         if self._frame_collector is None:
-            self._frame_collector = multiprocessing.Process(
-                target=self._collect_frames, 
-                args=(self._frame_sender, ),
-                daemon=True
-            )
+            if self.use_threading:
+                self._frame_collector = threading.Thread(
+                    target=self._collect_frames, 
+                    args=(self._frame_sender, ),
+                    daemon=True
+                )
+            else:
+                self._frame_collector = multiprocessing.Process(
+                    target=self._collect_frames, 
+                    args=(self._frame_sender, ),
+                    daemon=True
+                )
             self._frame_collector.start()
             self.container.event_generate(sequence=VIDEO_PLAY_EVENT)
 
     def pause(self):
         if self._frame_collector is not None:
-            self._frame_collector.terminate()
-            self._frame_collector.join()
-            self._frame_collector.close()
-            self._frame_collector = None
+            if self.use_threading:
+                thread: threading.Thread = self._frame_collector
+                self._frame_collector = None
+                thread.join()
+            else:
+                process: multiprocessing.Process = self._frame_collector
+                process.terminate()
+                process.close()
+                process.join()
+                self._frame_collector = None
 
             self.container.event_generate(sequence=VIDEO_PAUSE_EVENT)
             self._frame = self._first_frame
@@ -494,7 +511,7 @@ class CV2Video:
             if self.use_fps_delay:
                 duration_per_frame = 1 / (capture.get(cv2.CAP_PROP_FPS) or 1) / self.playback_speed
                 next_frame_time = time.time()
-            while not sender.closed:
+            while not sender.closed and (not self.use_threading or self._frame_collector is not None):
                 success, frame = capture.read()
                 if success:
                     sender.send(frame)
@@ -548,17 +565,18 @@ class CV2Video:
             return (max_width, math.ceil(max_width / video_aspect_ratio))
 
     def __reduce__(self) -> str | tuple[object, ...]:
-        return (self.__class__, (None, self.filename_or_index, self.api_preference, self.flipped, self.width, self.height, self.use_fps_delay, self.playback_speed, self.frame_number))
+        return (self.__class__, (None, self.filename_or_index, self.api_preference, self.flipped, self.width, self.height, self.use_fps_delay, self.playback_speed, self.frame_number, self.use_threading))
 
     def __del__(self):
         if self._frame_collector is not None:
-            self._frame_collector.terminate()
             self._frame_collector.join()
-            self._frame_collector.close()
         if self._frame_receiver is not None:
             self._frame_receiver.close()
         if self._frame_sender is not None:
             self._frame_sender.close()
+    
+    def _is_main(self):
+        return (self.use_threading and threading.current_thread().name == "MainThread") or (not self.use_threading and multiprocessing.current_process().name == "MainProcess")
 
 class Webcam(CV2Video):
     def _on_frame_received(self, frame: cv2.typing.MatLike) -> None:
