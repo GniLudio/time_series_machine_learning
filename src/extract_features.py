@@ -12,15 +12,32 @@ def load_dataset() -> pandas.DataFrame:
     df = pandas.DataFrame()
 
     for filename in os.listdir(tsml.RECORDING_TIMESERIES_DIRECTORY):
+        print(filename)
         df_file = pandas.read_csv(
             filepath_or_buffer=os.path.join(tsml.RECORDING_TIMESERIES_DIRECTORY, filename), 
             index_col=False, 
             dtype=tsml.DATASET_DTYPE,
-            header=60,
+            header=59,
             sep="\t",
-            usecols = [1, 2, 3, 4, 5, 26],
+            usecols = [1, 2, 3, 4, 5, 27],
             names = ["CH1","CH2","CH3","CH4","CH5", "Label"]
         )
+        word_index = 0
+        word_start = None
+        for i in range(0, len(df_file)):
+            if word_start is None:
+                if df_file.loc[i, tsml.LABEL_COLUMN] != 0:
+                    word_start = i
+            else:
+                if i == len(df_file)-1 or df_file.loc[i+1, tsml.LABEL_COLUMN] != df_file.loc[word_start, tsml.LABEL_COLUMN]:
+                    if i-word_start < 3900 or i-word_start > 4100:
+                        print(f"\tStart: {str.ljust(str(word_start+61), 7)}\tEnd: {str.ljust(str(i+61), 7)}\tLength: {str.ljust(str(i-word_start), 7)}")
+                    else:
+                        df_file.loc[word_start:i, 'Word Index'] = word_index
+                    word_start = None
+                    word_index = word_index + 1
+        df_file = df_file[df_file['Word Index'].notna()]
+        print(f"\tWord Count: {word_index}")
         df_file["Filename"] = filename
         df = pandas.concat([df, df_file])
     return df
@@ -51,8 +68,9 @@ if __name__ == '__main__':
     os.makedirs(os.path.dirname(output_filename), exist_ok=True)
 
     # Load Dataset
-    with TimeLogger(start_message="Loading Dataset".ljust(20), end_message="Done\t{duration:.2f}", separator="\t"):
+    with TimeLogger(start_message="Loading Dataset".ljust(20), end_message="Done\t{duration:.2f}"):
         dataset = load_dataset()
+    exit()
 
     # group data
     with TimeLogger(start_message="Grouping Data".ljust(20), end_message="Done\t{duration:.2f}", separator="\t"):

@@ -45,10 +45,10 @@ TSFEL_FEATURES = [feature for domain in tsfel.get_features_by_domain().values() 
 type Channel = typing.Literal["CH1","CH2","CH3","CH4","CH5"]
 CHANNELS: tuple[str] =       ["CH1","CH2","CH3","CH4","CH5"]
 
-type AdditionalColumn = typing.Literal["Label", "Filename"]
-ADDITIONAL_COLUMNS: tuple[str] =      ["Label", "Filename"]
+type AdditionalColumn = typing.Literal["Label", "Filename", "Label Index"]
+ADDITIONAL_COLUMNS: tuple[str] =      ["Label", "Filename", "Label Index"]
 LABEL_COLUMN = "Label"
-PARTICIPANT_COLUMN = "Participant"
+PARTICIPANT_COLUMN = "Filename"
 
 type WebcamBuffer = list[cv2.typing.MatLike]
 type TimeSeriesBuffer = list[list[float]]
