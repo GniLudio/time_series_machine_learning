@@ -22,6 +22,8 @@ if __name__ == '__main__':
     parser.add_argument("-m", "--model", default="RandomForestClassifier", choices=models.MODELS.keys(), help="The model to be used.")
     parser.add_argument("-c", "--channel", default=tsml.CHANNELS, action="append", choices=tsml.CHANNELS, type=str, help="The channels to be used. (all if omitted)")
     parser.add_argument("-pd", "--person_dependent", action="store_true", help="Whether to do a person-dependent cross-validation. (person-independent if omitted)")
+    parser.add_argument("-good", "--good_half", action="store_true", help="Only use good half of participants.")
+    parser.add_argument("-bad", "--bad_half", action="store_true", help="Only use bad half of participants.")
     # TODO: Add grouping parameter
     args = parser.parse_args()
     if len(args.channel)>len(tsml.CHANNELS):
@@ -38,6 +40,8 @@ if __name__ == '__main__':
     model: str = args.model
     channels: list[tsml.Channel] = args.channel
     person_dependent: bool = args.person_dependent
+    good_half = args.good_half
+    bad_half = args.bad_half
     
     # Paths
     input_filename: str = get_features_filename(domain=domain, window_size=window_size, window_overlap=window_overlap)
@@ -64,7 +68,48 @@ if __name__ == '__main__':
         if df.empty:
             print("Empty dataframe", end="\t")
             exit()
-        
+
+    with TimeLogger("Filter good/bad half of participants", "Done\t{duration:.2f}", separator="\t"):
+        keep_participants = (
+            (good_half and [
+                'AN05AJ10',
+                'IA05PE13',
+                'ZI05UT28',
+                'DO05OS15',
+                'OT08SE01',
+                'AR05AZ12',
+                'RD08CK29',
+                'RI04AM12',
+                'TE09AM08',
+                'TI04ZL26',
+                'NA04AN02',
+                'ER04EX19',
+                'NG08NG14',
+                'EZ06SE10',
+                'BE05UE25',
+                'CI08UT22',
+            ]) or 
+            (bad_half and [
+                'EZ06AN04',
+                'TA07EL09',
+                'UR05LI02',
+                'DI06AN16',
+                'LA06EZ25',
+                'EN07EL06',
+                'NA07CO09',
+                'SA04TO04',
+                'EZ05US09',
+                'PO71IY10',
+                'RA05IN20',
+                'BI08KA10',
+                'EH07LI26',
+                'UZ06ID04',
+                'NE10EL21',
+            ]) or 
+            None
+        )  
+        if keep_participants is not None:
+            df = df[df[tsml.PARTICIPANT_COLUMN].apply(lambda p: p in keep_participants)]
 
     # Split Data for person-dependent or person-indepent
     if person_dependent:
