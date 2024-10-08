@@ -1,4 +1,5 @@
 import time
+import pathlib
 
 class TimeLogger():
     def __init__(self, start_message: str | None, end_message: str | None, separator: str = "\n") -> None:
@@ -27,3 +28,15 @@ class TimeLogger():
             duration = self._end_time - self._start_time
             print(self._end_message.format(start_time=self._start_time, end_time=self._end_time, duration=duration, **kwargs))
 
+def get_filename_parts(filename: str) -> dict[str, str]:
+    base_filename = pathlib.Path(filename).stem
+
+    parts = {}
+    for part in str(base_filename).split("_"):
+        key, value = part.split("-")
+        parts[key] = value
+
+    return parts
+
+def join_filename_parts(parts: dict[str, any]) -> str:
+    return "_".join((f"{key}-{value}") for key, value in parts.items() if value is not None)

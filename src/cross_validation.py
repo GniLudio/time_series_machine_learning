@@ -1,5 +1,5 @@
 from extract_features import get_features_filename
-from utils import TimeLogger
+from utils import TimeLogger, join_filename_parts
 from argparse import ArgumentParser
 import tsml
 import os
@@ -41,13 +41,16 @@ if __name__ == '__main__':
     
     # Paths
     input_filename: str = get_features_filename(domain=domain, window_size=window_size, window_overlap=window_overlap)
-    output_filename: str = get_cross_validation_filename(
-        domain=domain,
-        window_size=window_size,
-        window_overlap=window_overlap,
-        model=model,
-        channels=channels,
-        person_dependent=person_dependent,
+    output_filename = os.path.join(
+        person_dependent and tsml.CROSS_VALIDATION_PERSON_DEPENDENT_DIRECTORY or tsml.CROSS_VALIDATION_PERSON_INDEPENDENT_DIRECTORY,
+        join_filename_parts({
+            'do': domain,
+            'ws': window_size,
+            'wo': window_overlap,
+            'mo': model,
+            'ch': channels,
+            'de': person_dependent and 'yes' or 'no'
+        })
     )
     os.makedirs(os.path.dirname(output_filename), exist_ok=True)
 
