@@ -42,8 +42,8 @@ type TsfelFeatureDomain = typing.Literal["all", "statistical", "temporal", "spec
 TSFEL_FEATURE_DOMAINS: tuple[str] =     ["all"] + [tsfel.get_features_by_domain().keys()]
 TSFEL_FEATURES = [feature for domain in tsfel.get_features_by_domain().values() for feature in domain.keys()]
 # Columns
-type Channel = typing.Literal['Frontalis', 'Corrugator_Supercili','Zygomaticus_Major','Levator_Labii_Superioris']
-CHANNELS: tuple[str] =       ['Frontalis', 'Corrugator_Supercili','Zygomaticus_Major','Levator_Labii_Superioris']
+type Channel = typing.Literal['0', '1', '2', '3']
+CHANNELS: tuple[str] =       ['0', '1', '2', '3']
 
 type AdditionalColumn = typing.Literal["Participant", "Session", "Trial", "Action Unit", "Feedback"]
 ADDITIONAL_COLUMNS: tuple[str] =      ["Participant", "Session", "Trial", "Action Unit", "Feedback"]
