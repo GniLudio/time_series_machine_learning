@@ -37,7 +37,7 @@ RECORDING_APP_PREVIEW_INSTRUCTION = lambda window: ([
     "Press your lips together strongly.", # AU24
     "Press your lips together slightly.", # AU24
 ])[window.getvar("label")]
-RECORDING_APP_WEBCAM_INSTRUCTION = lambda window: f"An instruction for the webcam can be placed here."
+RECORDING_APP_WEBCAM_INSTRUCTION = lambda window: f"Hold the expression from the beginning to the end of the recording."
 RECORDING_APP_TITEL_LABEL_NAMES = [
     " 0 (Neutral)",
     " 1 (Strong)", " 1 (Slightly)",
@@ -56,9 +56,16 @@ RECORDING_APP_TITLE = lambda window: (
     + f" - EMG-Positioning {window.getvar("emg_positioning")}"
     + f" - Trial {window.getvar("trial")}"
     + f" - Action Unit {RECORDING_APP_TITEL_LABEL_NAMES[window.getvar("label")]}"
+    + f" - {window.getvar("label")}"
 )
 RECORDING_APP_SURVEY_TITLE = "Survey"
 RECORDING_APP_SURVEY_QUESTIONS =  [
+    { "type":"Slider1", "label": "How much did you feel the presence of the electrodes on the upper face?", "initial": 1.0, "min": 1.0, "max": 5.0},
+    { "type":"Slider1", "label": "How much did you feel the presence of the electrodes on the lower face?", "initial": 1.0, "min": 1.0, "max": 5.0},
+    { "type":"Slider1", "label": "Comapred to having no electrodes, how difficult did it feel to move the muscles on the upper face?", "initial": 1.0, "min": 1.0, "max": 5.0},
+    { "type":"Slider1", "label": "Comapred to having no electrodes, how difficult did it feel to move the muscles on the upper face?", "initial": 1.0, "min": 1.0, "max": 5.0}
+]
+'''
     { "type": "Text", "text": "Some Text"},
     { "type":"Checkbutton", "label": "Question 1", "initial": False},
     { "type":"Radiobutton", "label": "Question 2", "initial": "Initial Radio", "values": ["Initial Radio", "Other Radio", "Another Radio"]},
@@ -66,8 +73,8 @@ RECORDING_APP_SURVEY_QUESTIONS =  [
     { "type":"Dropdown", "label": "Question 4", "initial": "Initial Dropdown", "values": ["Initial Dropdown", "Other Dropdown", "Another Dropdown"]},
     { "type":"Slider1", "label": "Question 5", "initial": 3.0, "min": 1.0, "max": 5.0},
     { "type":"Slider2", "label": "Question 5", "initial": 50.0, "min": 1.0, "max": 100.0},
-    { "type": "Spinbox", "label": "Question 6", "initial": 33, "min": 3, "max": 333, "step": 11},
-]
+    { "type": "Spinbox", "label": "Question 6", "initial": 33, "min": 3, "max": 333, "step": 11}'''
+
 RECORDING_APP_INSTRUCTIONS = f"""
 In the following study you will perform multiple action units.
 
@@ -89,8 +96,8 @@ type TsfelFeatureDomain = typing.Literal["all", "statistical", "temporal", "spec
 TSFEL_FEATURE_DOMAINS: tuple[str] =     ["all"] + [tsfel.get_features_by_domain().keys()]
 TSFEL_FEATURES = [feature for domain in tsfel.get_features_by_domain().values() for feature in domain.keys()]
 # Columns
-type Channel = typing.Literal["Channel 1", "Channel 2", "Channel 3", "Channel 4"]
-CHANNELS: tuple[str] =       ["Channel 1", "Channel 2", "Channel 3", "Channel 4"]
+type Channel = typing.Literal["Channel 1", "Channel 2", "Channel 3", "Channel 4", "Channel 5", "Channel 6"]
+CHANNELS: tuple[str] =       ["Channel 1", "Channel 2", "Channel 3", "Channel 4", "Channel 5", "Channel 6"]
 
 type AdditionalColumn = typing.Literal["Participant", "Session", "Trial", "Action Unit", "Feedback"]
 ADDITIONAL_COLUMNS: tuple[str] =      ["Participant", "Session", "Trial", "Action Unit", "Feedback"]
