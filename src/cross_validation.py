@@ -7,12 +7,6 @@ import pandas
 from sklearn.model_selection import cross_val_predict
 import models
 
-def get_cross_validation_filename(domain: tsml.TsfelFeatureDomain, window_size: int, window_overlap: int, model: str, channels: list[str], person_dependent: bool):
-    return os.path.join(
-        person_dependent and tsml.CROSS_VALIDATION_PERSON_DEPENDENT_DIRECTORY or tsml.CROSS_VALIDATION_PERSON_INDEPENDENT_DIRECTORY,
-        f"cv{person_dependent and 'p' or 'i'}-d_{domain}-wo_{window_overlap}-m_{model}-c_{'.'.join(channels)}.csv"
-    )
-
 if __name__ == '__main__':
     # Parameter Parser
     parser = ArgumentParser(description = "Run a cross validation with the following parameters.")
@@ -52,9 +46,10 @@ if __name__ == '__main__':
             'ws': window_size,
             'wo': window_overlap,
             'mo': model,
-            'ch': channels,
-            'de': person_dependent and 'yes' or 'no'
-        })
+            'ch': ".".join(channels),
+            'de': person_dependent and 'yes' or 'no',
+            'half': (good_half and 'good') or (bad_half and 'bad') or 'all'
+        }) + ".csv"
     )
     os.makedirs(os.path.dirname(output_filename), exist_ok=True)
 
@@ -69,47 +64,51 @@ if __name__ == '__main__':
             print("Empty dataframe", end="\t")
             exit()
 
-    with TimeLogger("Filter good/bad half of participants", "Done\t{duration:.2f}", separator="\t"):
-        keep_participants = (
-            (good_half and [
-                'AN05AJ10',
-                'IA05PE13',
-                'ZI05UT28',
-                'DO05OS15',
-                'OT08SE01',
-                'AR05AZ12',
-                'RD08CK29',
-                'RI04AM12',
-                'TE09AM08',
-                'TI04ZL26',
-                'NA04AN02',
-                'ER04EX19',
-                'NG08NG14',
-                'EZ06SE10',
-                'BE05UE25',
-                'CI08UT22',
-            ]) or 
-            (bad_half and [
-                'EZ06AN04',
-                'TA07EL09',
-                'UR05LI02',
-                'DI06AN16',
-                'LA06EZ25',
-                'EN07EL06',
-                'NA07CO09',
-                'SA04TO04',
-                'EZ05US09',
-                'PO71IY10',
-                'RA05IN20',
-                'BI08KA10',
-                'EH07LI26',
-                'UZ06ID04',
-                'NE10EL21',
-            ]) or 
-            None
-        )  
-        if keep_participants is not None:
-            df = df[df[tsml.PARTICIPANT_COLUMN].apply(lambda p: p in keep_participants)]
+    if good_half or bad_half:
+        with TimeLogger("Filter good/bad half of participants", "Done\t{duration:.2f}", separator="\t"):
+            keep_p_list = None
+            if good_half:
+                keep_p_list = [
+                    'AN05AJ10',
+                    'IA05PE13',
+                    'ZI05UT28',
+                    'DO05OS15',
+                    'OT08SE01',
+                    'AR05AZ12',
+                    'RD08CK29',
+                    'RI04AM12',
+                    'TE09AM08',
+                    'TI04ZL26',
+                    'NA04AN02',
+                    'ER04EX19',
+                    'NG08NG14',
+                    'EZ06SE10',
+                    'BE05UE25',
+                    'CI08UT22',
+                ]
+            elif bad_half:
+                keep_p_list = [
+                    'EZ06AN04',
+                    'TA07EL09',
+                    'UR05LI02',
+                    'DI06AN16',
+                    'LA06EZ25',
+                    'EN07EL06',
+                    'NA07CO09',
+                    'SA04TO04',
+                    'EZ05US09',
+                    'PO71IY10',
+                    'RA05IN20',
+                    'BI08KA10',
+                    'EH07LI26',
+                    'UZ06ID04',
+                    'NE10EL21',
+                ]
+            keep_index = additional_info[tsml.PARTICIPANT_COLUMN].apply(lambda p: p in keep_p_list)
+            df = df[keep_index].reset_index()
+            additional_info = additional_info[keep_index].reset_index()
+            labels = labels[keep_index].reset_index(drop=True)
+
 
     # Split Data for person-dependent or person-indepent
     if person_dependent:
@@ -126,12 +125,15 @@ if __name__ == '__main__':
                 split_labels = labels.iloc[split_index]
 
                 split_results = pandas.DataFrame(additional_info.iloc[split_index])
+                print("Predicting...", end="\t", flush=True)
                 split_results['Prediction'] = cross_val_predict(
                     estimator = estimator,
                     X = split_features,
                     y = split_labels,
                 )
+                print("Writing", end="\t")
                 split_results.to_csv(path_or_buf=output_filename, index=False, header=(i==1), mode=(i==1) and 'w' or 'a')
+
 
     # Log End
     start_end_logger.end()
