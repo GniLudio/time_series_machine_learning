@@ -94,7 +94,7 @@ if __name__ == '__main__':
         tsml.FEATURES_DIRECTORY, 
         join_filename_parts({
             'do': domain,
-            'ws': window_size,
+            'ws': window_size or 'all',
             'wo': window_overlap
         })
     ) + ".csv"
