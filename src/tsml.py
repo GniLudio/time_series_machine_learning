@@ -49,6 +49,8 @@ type AdditionalColumn = typing.Literal["Participant", "Trial", "Label"]
 ADDITIONAL_COLUMNS: tuple[str] =      ["Participant", "Trial", "Label"]
 LABEL_COLUMN = "Label"
 PARTICIPANT_COLUMN = "Participant"
+TRIAL_COLUMN = "Trial"
+PREDICTION_COLUMN = "Prediction"
 
 type WebcamBuffer = list[cv2.typing.MatLike]
 type TimeSeriesBuffer = list[list[float]]
@@ -56,11 +58,9 @@ type TimeSeriesBuffer = list[list[float]]
 # Pandas
 DATASET_DTYPE = {
     **{channel: 'float64' for channel in CHANNELS},
-    'Participant': 'object',
-    'Session': 'int64',
-    'Trial': 'int64',
-    'Action Unit': 'int64',
-    'Feedback': 'int64',
+    PARTICIPANT_COLUMN: 'object',
+    TRIAL_COLUMN: 'int64',
+    PREDICTION_COLUMN: 'int64',
 }
 
 # Paths
@@ -74,8 +74,11 @@ RECORDING_SURVEY_DIRECTORY = os.path.join(RECORDING_DIRECTORY, 'survey')
 ## Resources
 RESOURCES_DIRECTORY = 'resources'
 RESOURCES_PREVIEWS_DIRECTORY = os.path.join(RESOURCES_DIRECTORY, 'previews')
-
+# FEATURES
 FEATURES_DIRECTORY = os.path.join(DATA_DIRECTORY, 'features')
+# CROSS VALIDATION
 CROSS_VALIDATION_DIRECTORY = os.path.join(DATA_DIRECTORY, 'cross_validation')
 CROSS_VALIDATION_PERSON_DEPENDENT_DIRECTORY = os.path.join(CROSS_VALIDATION_DIRECTORY, 'person_dependent')
 CROSS_VALIDATION_PERSON_INDEPENDENT_DIRECTORY = os.path.join(CROSS_VALIDATION_DIRECTORY, 'person_independent')
+# IMAGES
+IMAGES_DIRECTORY = os.path.join(DATA_DIRECTORY, 'images')
