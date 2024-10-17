@@ -1,4 +1,3 @@
-from extract_features import get_features_filename
 from utils import TimeLogger, join_filename_parts
 from argparse import ArgumentParser
 import tsml
@@ -7,17 +6,11 @@ import pandas
 from sklearn.model_selection import cross_val_predict
 import models
 
-def get_cross_validation_filename(domain: tsml.TsfelFeatureDomain, window_size: int, window_overlap: int, model: str, channels: list[str], person_dependent: bool):
-    return os.path.join(
-        person_dependent and tsml.CROSS_VALIDATION_PERSON_DEPENDENT_DIRECTORY or tsml.CROSS_VALIDATION_PERSON_INDEPENDENT_DIRECTORY,
-        f"cv{person_dependent and 'p' or 'i'}-d_{domain}-wo_{window_overlap}-m_{model}-c_{'.'.join(channels)}.csv"
-    )
-
 if __name__ == '__main__':
     # Parameter Parser
     parser = ArgumentParser(description = "Run a cross validation with the following parameters.")
     parser.add_argument("-d", "--domain", default="all", type=str, choices=tsml.TSFEL_FEATURE_DOMAINS, help="The tsfel feature domain to be used.")
-    parser.add_argument("-ws", "--window_size", default=100, type=int, help="The window size to be used. (in ms)")
+    parser.add_argument("-ws", "--window_size", default=None, type=int, help="The window size to be used. (in ms)")
     parser.add_argument("-wo", "--window_overlap", default=0, type=int, help="The window overlap to be used.")
     parser.add_argument("-m", "--model", default="RandomForestClassifier", choices=models.MODELS.keys(), help="The model to be used.")
     parser.add_argument("-c", "--channel", default=tsml.CHANNELS, action="append", choices=tsml.CHANNELS, type=str, help="The channels to be used. (all if omitted)")
@@ -40,17 +33,25 @@ if __name__ == '__main__':
     person_dependent: bool = args.person_dependent
     
     # Paths
-    input_filename: str = get_features_filename(domain=domain, window_size=window_size, window_overlap=window_overlap)
-    output_filename = os.path.join(
-        person_dependent and tsml.CROSS_VALIDATION_PERSON_DEPENDENT_DIRECTORY or tsml.CROSS_VALIDATION_PERSON_INDEPENDENT_DIRECTORY,
+    input_filename: str = os.path.join(
+        tsml.FEATURES_DIRECTORY,
         join_filename_parts({
             'do': domain,
-            'ws': window_size,
+            'ws': window_size or 'all',
+            'wo': window_overlap
+        }) + ".csv"
+    )
+    output_filename = os.path.join(
+        person_dependent and tsml.CROSS_VALIDATION_PERSON_DEPENDENT_DIRECTORY or tsml.CROSS_VALIDATION_PERSON_INDEPENDENT_DIRECTORY,
+        (person_dependent and 'cvp_' or 'cvi_') +
+        join_filename_parts({
+            'do': domain,
+            'ws': window_size or 'all',
             'wo': window_overlap,
             'mo': model,
-            'ch': channels,
-            'de': person_dependent and 'yes' or 'no'
-        })
+            'ch': ".".join(channels),
+            'pd': person_dependent and 'yes' or 'no'
+        }) + ".csv"
     )
     os.makedirs(os.path.dirname(output_filename), exist_ok=True)
 
@@ -76,7 +77,7 @@ if __name__ == '__main__':
     with TimeLogger("Cross validating".ljust(20) + "\t'" + output_filename + "'", "Done\t{duration:.2f}"):
         estimator = models.MODELS[model]()
         for i, (split_name, split_index) in enumerate(splits.items(), start=1):
-            with TimeLogger("\t" + f"{i} / {len(splits)}\t{split_name}".ljust(10), "Done\t{duration:.2f}", separator="\t"):
+            with TimeLogger("\t" + f"{i} / {len(splits)}".ljust(10), "Done\t{duration:.2f}", separator="\t"):
                 split_features = df.iloc[split_index]
                 split_labels = labels.iloc[split_index]
 

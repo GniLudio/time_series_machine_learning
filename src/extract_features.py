@@ -8,7 +8,7 @@ import os
 def load_dataset() -> pandas.DataFrame:
     df = pandas.DataFrame()
 
-    for filename in sorted(os.listdir(tsml.RECORDING_TIMESERIES_DIRECTORY)[:1]):
+    for filename in sorted(os.listdir(tsml.RECORDING_TIMESERIES_DIRECTORY)):
         participant = not filename.startswith("Laycee") and filename[4:-6] or filename[18+4:-6]
         print("\t", participant, flush=True)
 
@@ -36,7 +36,7 @@ def load_dataset() -> pandas.DataFrame:
                         if word_index in [1]:
                             actual_word_index = None
                         else:
-                            actual_word_index = word_index -1
+                            actual_word_index = word_index-1
                     elif participant == "05" and word_index in [31, 32]:
                         actual_word_index = None
                     elif participant == "28" and word_index in [121, 122]:
@@ -52,23 +52,19 @@ def load_dataset() -> pandas.DataFrame:
                         else:
                             actual_word_index -= 6 
 
-                    if actual_word_index is not None:
-                        print(f"\t\t{actual_word_index}\t{df_file.loc[word_start]['Label']}")
-                    else:
-                        print(f"\t\t----{word_index}\t{df_file.loc[word_start]['Label']}")
+                    if actual_word_index is None:
+                        print(f"\t\t----SKIP - Index: {word_index}\tLabel: {df_file.loc[word_start]['Label']}")
 
                     if actual_word_index is not None:
                         if i-word_start < 3900 or i-word_start > 4100:
-                            print(f"\t\t\t----LENGTH - Start: {str.ljust(str(word_start+61), 7)}\tEnd: {str.ljust(str(i+61), 7)}\tLength: {str.ljust(str(i-word_start), 7)}")
-                        else:
-                            df_file.loc[word_start:i, 'Trial'] = actual_word_index
+                            print(f"\t\t----LENGTH - {actual_word_index}\t{df_file.loc[word_start]['Label']} - Start: {str.ljust(str(word_start+61), 7)}\tEnd: {str.ljust(str(i+61), 7)}\tLength: {str.ljust(str(i-word_start), 7)}")
+                        df_file.loc[word_start:i, 'Trial'] = actual_word_index
 
                     word_start = None
                     word_index += 1
         df_file = df_file[df_file['Trial'].notna()]
         df_file["Participant"] = participant
         df = pandas.concat([df, df_file])
-        print(f"\tWord Count: {len(df_file['Trial'].unique())}")
     df.reset_index(inplace=True)
     return df
 
@@ -109,7 +105,7 @@ if __name__ == '__main__':
         groups = dataset.groupby(by=tsml.ADDITIONAL_COLUMNS, sort=True).groups
 
     # Extract Features
-    with TimeLogger(start_message="Extract Features", end_message="Extracting Features\tDone\t{duration:.2f}"):
+    with TimeLogger(start_message="Extracting Features", end_message="Extracting Features\tDone\t" + output_filename + "\t{duration:.2f}"):
         configuration = tsfel.get_features_by_domain(domain != 'all' and domain or None)
         for i, (group_key, group_indices) in enumerate(groups.items(), start=1):
             with TimeLogger(f"\t{str(i).rjust(len(str(len(groups))))} / {str(len(groups))}\t{group_key}".ljust(45), "Done\t{duration:.2f}", separator="\t"):
@@ -118,7 +114,7 @@ if __name__ == '__main__':
                     config = configuration,
                     timeseries = group_data,
                     fs = tsml.SAMPLING_FREQUENCY,
-                    window_size = window_size or len(group_data),
+                    window_size = window_size,
                     overlap = window_overlap / 100,
                     verbose = 0,
                 )
