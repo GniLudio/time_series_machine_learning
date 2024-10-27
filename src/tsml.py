@@ -7,7 +7,7 @@ import tsfel
 SAMPLING_FREQUENCY = 2000
 
 # RECORDING APP
-RECORDING_APP_NUMBER_OF_EXPRESSIONS = 17
+RECORDING_APP_NUMBER_OF_EXPRESSIONS = 3
 RECORDING_APP_EXPRESSION_DURATION = 5
 RECORDING_APP_WEBCAM_RESOLUTION_WIDTH = 1920 # to bypass opencv default webcam resolution of (640, 480)
 RECORDING_APP_WEBCAM_RESOLUTION_HEIGHT = 1080 # to bypass opencv default webcam resolution of (640, 480)
@@ -20,24 +20,24 @@ RECORDING_APP_FEEDBACK_QUESTION = "How satisfied were you with the expression?"
 RECORDING_APP_FEEDBACK_ANSWERS = ["Not at all", "Very"]
 RECORDING_APP_PREVIEW_INSTRUCTION = lambda window: ([
     "Keep your expression neutral and relaxed.", #AU0
-    "Raise the inner corners of your eyebrows strongly.", # AU1
-    "Raise the inner corners of your eyebrows slightly.", # AU1
-    "Raise the outer corners of your eyebrows strongly.", # AU2
-    "Raise the outer corners of your eyebrows slightly.", # AU2
-    "Lower your eyebrows and draw them together strongly.", # AU4
-    "Lower your eyebrows and draw them together slightly.", # AU4
-    "Wrinkle your nose, letting your lips part strongly.", # AU9
-    "Wrinkle your nose, letting your lips part slightly.", # AU9
-    "Let the corners of your lips come up strongly.", # AU12
-    "Let the corners of your lips come up slightly.", # AU12
-    "Push your lower lip up, thereby raising your chin strongly.", # AU17
-    "Push your lower lip up, thereby raising your chin slightly.", # AU17
-    "Stretch your mouth horizontally, pulling your lip corners back toward your ears strongly.", # AU20
-    "Stretch your mouth horizontally, pulling your lip corners back toward your ears slightly.", # AU20
-    "Press your lips together strongly.", # AU24
-    "Press your lips together slightly.", # AU24
+    "Raise the inner corners of your eyebrows **strongly**.", # AU1
+    "Raise the inner corners of your eyebrows **slightly**.", # AU1
+    "Raise the outer corners of your eyebrows **strongly**.", # AU2
+    "Raise the outer corners of your eyebrows **slightly**.", # AU2
+    "Lower your eyebrows and draw them together **strongly**.", # AU4
+    "Lower your eyebrows and draw them together **slightly**.", # AU4
+    "Wrinkle your nose, letting your lips part **strongly**.", # AU9
+    "Wrinkle your nose, letting your lips part **slightly**.", # AU9
+    "Let the corners of your lips come up **strongly**.", # AU12
+    "Let the corners of your lips come up **slightly**.", # AU12
+    "Push your lower lip up, thereby raising your chin **strongly**.", # AU17
+    "Push your lower lip up, thereby raising your chin **slightly**.", # AU17
+    "Stretch your mouth horizontally, pulling your lip corners back toward your ears **strongly**.", # AU20
+    "Stretch your mouth horizontally, pulling your lip corners back toward your ears **slightly**.", # AU20
+    "Press your lips together **strongly**.", # AU24
+    "Press your lips together **slightly**.", # AU24
 ])[window.getvar("label")]
-RECORDING_APP_WEBCAM_INSTRUCTION = lambda window: f"Hold the expression from the beginning to the end of the recording."
+RECORDING_APP_WEBCAM_INSTRUCTION = lambda window: f"Start and then hold the expression for {RECORDING_APP_EXPRESSION_DURATION}s after pressing the START button."
 RECORDING_APP_TITEL_LABEL_NAMES = [
     " 0 (Neutral)",
     " 1 (Strong)", " 1 (Slightly)",

@@ -1,5 +1,4 @@
-import tkinter, tkinter.dialog, tkinter.simpledialog, tkinter.messagebox
-import tkinter.ttk 
+import tkinter, tkinter.dialog, tkinter.simpledialog, tkinter.messagebox, tkinter.font, tkinter.ttk 
 import threading
 import multiprocessing, multiprocessing.connection
 import threading
@@ -10,15 +9,13 @@ import os
 import time
 import math
 import pandas
-import pathlib
 from utils import TimeLogger, ask_selection, join_filename_parts
 
 import tsml
 
-EMG_POSITIONS = ["a", "b"]
-
 # STYLE
 INSTRUCTION_FONT = ("Helvetica", 12)
+INSTRUCTION_FONT_HIGHLIGHT = ("Helvetica", 12, "bold")
 BUTTON_FONT = ("Helvetica", 12, "bold")
 FEEDBACK_QUESTION_FONT = ("Helvetica", 12, "bold")
 FEEDBACK_ANSWER_FONT = ("Arial", 10)
@@ -34,6 +31,9 @@ START_RECORDING_EVENT = "<<StartRecording>>"
 STOP_RECORDING_EVENT = "<<StopRecording>>"
 FEEDBACK_CHANGED_EVENT = "<<FeedbackChanged>>"
 WEBCAM_FIRST_FRAME = "<<WebcamFirstFrame>>"
+
+# MISC
+EMG_POSITIONS = ["A", "B"]
 
 # Debugging
 SHOW_THEME_SELECTOR = False
@@ -80,9 +80,17 @@ def setup_ui() -> tkinter.Tk:
     preview_video.bind(VIDEO_PLAY_EVENT, lambda _: preview_video_play_pause_button.configure(text="PAUSE"), add=True)
     preview_video.bind(VIDEO_PAUSE_EVENT, lambda _: preview_video_play_pause_button.configure(text="PLAY"), add=True)
 
-    preview_instruction = tkinter.ttk.Label(master=preview_container, name="instruction", justify="center", font=INSTRUCTION_FONT)
-    preview_instruction.grid(row=1, column=0, padx=10, pady=10)
-    window.bind(NEXT_LABEL_EVENT, func=lambda _: preview_instruction.configure(text=tsml.RECORDING_APP_PREVIEW_INSTRUCTION(window)), add=True)
+    preview_instruction = tkinter.Frame(master=preview_container, name="instruction")
+    preview_instruction.grid(row=1, column=0, padx=10, pady=10, sticky="n")
+    window.bind(NEXT_LABEL_EVENT, func=lambda _: preview_instruction_update(), add=True)
+    def preview_instruction_update():
+        for child in preview_instruction.winfo_children():
+            child.destroy()
+
+        for i, part in enumerate(tsml.RECORDING_APP_PREVIEW_INSTRUCTION(window).split("**")):
+            font = (i % 2 == 0) and INSTRUCTION_FONT or INSTRUCTION_FONT_HIGHLIGHT
+            label = tkinter.ttk.Label(master=preview_instruction, text=part, font=font)
+            label.grid(row=0, column=i, padx=0, pady=0, ipadx=0, ipady=0, sticky="ns")
 
     ### Seperator
     seperator_container = tkinter.ttk.Frame(master=video_container)
@@ -102,8 +110,6 @@ def setup_ui() -> tkinter.Tk:
     webcam_container.grid_rowconfigure(index=1, weight=0)
     webcam_container.grid_columnconfigure(index=0, weight=1)
     video_container.add(child=webcam_container, weight=3)
-
-
 
     webcam_video = tkinter.Label(master=webcam_container, name="video")
     webcam_video.grid(row=0, column=0, sticky="nsew")
@@ -162,6 +168,7 @@ def open_survey():
     dialog.title(tsml.RECORDING_APP_SURVEY_TITLE)
     dialog.protocol("WM_DELETE_WINDOW", on_exit)
     dialog.minsize(width=720, height=480)
+    old_theme = tkinter.ttk.Style().theme_use()
     tkinter.ttk.Style().theme_use(tsml.RECORDING_APP_SURVEY_THEME)
 
     dialog.configure(padx=10, pady=10)
@@ -214,7 +221,7 @@ def open_survey():
             widget.grid(row=i, column=1, padx=10, pady=10, sticky="w")
             variables.append(variable)
 
-    submit_button = tkinter.Button(root, text="Submit", font=SURVEY_SUBMIT_FONT, command=lambda: on_submit_survey(variables))
+    submit_button = tkinter.Button(root, text="Submit", font=SURVEY_SUBMIT_FONT, command=lambda: on_submit_survey(dialog, variables))
     submit_button.grid(row=len(tsml.RECORDING_APP_SURVEY_QUESTIONS)+1, column=0, columnspan=2, padx=10, pady=10)
 
     if SHOW_THEME_SELECTOR:
@@ -227,6 +234,8 @@ def open_survey():
     dialog.geometry(f"+{(dialog.winfo_screenwidth()) // 2}+{dialog.winfo_width() // 2}")
     dialog.grab_set()
     dialog.wait_window()
+
+    tkinter.ttk.Style().theme_use(old_theme)
 
 def setup_videos(window: tkinter.Tk, webcam_path: str, preview_path: str) -> tuple['Webcam', dict[int, 'CV2Video']]:
     webcam_video = window.nametowidget(webcam_path)
@@ -253,7 +262,8 @@ def setup_videos(window: tkinter.Tk, webcam_path: str, preview_path: str) -> tup
             height=None,
             use_fps_delay=True,
             playback_speed=tsml.RECORDING_APP_PREVIEW_PLAYBACK_SPEED,
-            use_threading=True
+            use_threading=True,
+            looping=True,
         ) for i in range(tsml.RECORDING_APP_NUMBER_OF_EXPRESSIONS)
     }
     for preview in previews.values():
@@ -268,9 +278,7 @@ def toggle_preview():
     previews[window.getvar("label")].toggle_play_pause()
 
 def next_label():
-    global window, webcam_buffer, time_series_buffer
-
-    print("Asdf", len(time_series_buffer))
+    global window, webcam_buffer, time_series_buffer, window_exited
 
     threading.Thread(
         target=save_recording, 
@@ -291,13 +299,25 @@ def next_label():
         print("Next Label")
         window.setvar(name="label", value=window.getvar("label")+1)
     else:
-        next_session = tkinter.messagebox.askyesno(message=tsml.RECORDING_APP_CONTINUE_MESSAGE)
-        if next_session:
+        #next_trial = tkinter.messagebox.askyesno(message=tsml.RECORDING_APP_CONTINUE_MESSAGE)
+        next_trial = False
+        if next_trial:
             print("Next Trial")
             window.setvar(name="trial", value=window.getvar("trial")+1)
             window.setvar(name="label", value=0)
+        elif not window.getvar("emg_switched"):
+            open_survey()
+            tkinter.messagebox.showinfo(title="", message="Switch the electrode positioning.")
+            window.state("zoomed")
+            window.deiconify()
+            window.setvar(name="emg_positioning", value=next(p for p in EMG_POSITIONS if p != window.getvar("emg_positioning")))
+            window.setvar(name="trial", value=0)
+            window.setvar(name="label", value=0)
+            window.setvar(name="emg_switched", value=True)
         else:
             open_survey()
+            tkinter.messagebox.showinfo(title="", message="Thanks for participating.")
+            window_exited = True
 
 def update_recording():
     global window, time_series_buffer, time_series_inlet
@@ -347,25 +367,24 @@ def on_exit():
     window_exited = True
     window.destroy()
 
-def on_submit_survey(variables: list[tkinter.Variable]):
+def on_submit_survey(dialog: tkinter.Toplevel, variables: list[tkinter.Variable]):
     global window
-    participant, session, emg_positioning = window.getvar("participant"), window.getvar("session"), window.getvar("emg_positioning")
     values = [str(variable.get()) for variable in variables]
     filename = get_survey_output_filename(
         get_base_output_filename(
-            participant=participant, 
-            session=session, 
-            emg_positioning=emg_positioning, 
-            trial=None, 
+            participant = window.getvar("participant"), 
+            session = window.getvar("session"), 
+            emg_positioning= window.getvar("emg_positioning"),
+            trial=window.getvar("trial"), 
             label=None
         )
     )
     print("Save Survey", filename, values)
 
     os.makedirs(os.path.dirname(filename), exist_ok=True)
-    pandas.DataFrame(data=values).to_csv(filename)
-    
-    on_exit()
+    pandas.DataFrame(data=values).to_csv(filename, header=False)
+
+    dialog.destroy()
 
 # Paths
 def get_base_output_filename(participant: str, session: int, emg_positioning: str, trial: int | None, label: int | None) -> str:
@@ -398,7 +417,7 @@ def does_session_exist(participant: str, session: int) -> bool:
 
 # Classes
 class CV2Video:
-    def __init__(self, container: tkinter.Label, filename_or_index: str | int, api_preference: int, flipped: bool, width: int | None, height: int | None, use_fps_delay: bool, playback_speed: float = 1, frame_number: int = 0, use_threading: bool = False):
+    def __init__(self, container: tkinter.Label, filename_or_index: str | int, api_preference: int, flipped: bool, width: int | None, height: int | None, use_fps_delay: bool, playback_speed: float = 1, frame_number: int = 0, use_threading: bool = False, looping: bool = False):
         self.container = container
         self.filename_or_index = filename_or_index
         self.api_preference = api_preference
@@ -409,6 +428,7 @@ class CV2Video:
         self.playback_speed = playback_speed
         self.frame_number = frame_number
         self.use_threading = use_threading
+        self.looping = looping
 
         self._frame_collector: threading.Thread | multiprocessing.Process | None = None
         self._frame: cv2.typing.MatLike | None = None
@@ -515,6 +535,9 @@ class CV2Video:
                 success, frame = capture.read()
                 if success:
                     sender.send(frame)
+                elif self.looping:
+                    capture.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                    continue
                 else:
                     sender.send(None)
                     break
@@ -565,7 +588,7 @@ class CV2Video:
             return (max_width, math.ceil(max_width / video_aspect_ratio))
 
     def __reduce__(self) -> str | tuple[object, ...]:
-        return (self.__class__, (None, self.filename_or_index, self.api_preference, self.flipped, self.width, self.height, self.use_fps_delay, self.playback_speed, self.frame_number, self.use_threading))
+        return (self.__class__, (None, self.filename_or_index, self.api_preference, self.flipped, self.width, self.height, self.use_fps_delay, self.playback_speed, self.frame_number, self.use_threading, self.looping))
 
     def __del__(self):
         if self._frame_collector is not None:
@@ -638,11 +661,12 @@ if __name__ == '__main__':
     # Indentifier
     with TimeLogger("Setup Identifier", "Done", separator="\t"):
         participant_value = tkinter.simpledialog.askstring(title="Participant", prompt="Enter the participant identifier:\t\t", parent=window) or 'test'
-        emg_positioning_value = ask_selection(question="Which EMG positioning is used?", values=["A", "B"], title="EMG Positioning", master=window, font=FEEDBACK_QUESTION_FONT)
+        emg_positioning_value = ask_selection(question="Which EMG positioning is used?", values=EMG_POSITIONS, title="EMG Positioning", master=window, font=FEEDBACK_QUESTION_FONT)
         session_value = next(i for i in range(tsml.RECORDING_APP_MAX_SESSION_NUMBER) if not does_session_exist(participant=participant_value, session=i))
 
         participant_variable = tkinter.StringVar(master=window, name="participant", value=participant_value)
         emg_positioning_variable = tkinter.StringVar(master=window, name="emg_positioning", value=emg_positioning_value)
+        emg_positioning_switched_variable = tkinter.BooleanVar(master=window, name="emg_switched", value=False)
         session_variable = tkinter.IntVar(master=window, name="session", value=session_value)
         trial_variable = tkinter.IntVar(master=window, name="trial", value=0)
         label_variable = tkinter.IntVar(master=window, name="label", value=0)
