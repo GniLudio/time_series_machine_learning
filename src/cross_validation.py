@@ -1,3 +1,4 @@
+import pandas.api.typing
 from utils import TimeLogger, join_filename_parts
 from argparse import ArgumentParser
 import tsml
@@ -6,6 +7,9 @@ import pandas
 from sklearn.model_selection import cross_val_predict
 import models
 
+def load_familiarities() -> pandas.api.typing.DataFrameGroupBy:
+    return pandas.read_excel(io = os.path.join("data", "EMT_cor3.xlsx"), usecols=['participant', 'trial', 'familiarity']).groupby(['participant', 'trial'])
+
 if __name__ == '__main__':
     # Parameter Parser
     parser = ArgumentParser(description = "Run a cross validation with the following parameters.")
@@ -13,12 +17,10 @@ if __name__ == '__main__':
     parser.add_argument("-ws", "--window_size", default=None, type=int, help="The window size to be used. (in ms)")
     parser.add_argument("-wo", "--window_overlap", default=0, type=int, help="The window overlap to be used.")
     parser.add_argument("-m", "--model", default="RandomForestClassifier", choices=models.MODELS.keys(), help="The model to be used.")
-    parser.add_argument("-c", "--channel", default=tsml.CHANNELS, action="append", choices=tsml.CHANNELS, type=str, help="The channels to be used. (all if omitted)")
+    parser.add_argument("-c", "--channel", action="append", choices=tsml.CHANNELS, type=str, help="The channels to be used. (all if omitted)")
     parser.add_argument("-pd", "--person_dependent", action="store_true", help="Whether to do a person-dependent cross-validation. (person-independent if omitted)")
-    # TODO: Add grouping parameter
+    parser.add_argument("-fa", "--familiarity", type=str, choices=["yes", "no"], help="Limits the data to one familiarity.")
     args = parser.parse_args()
-    if len(args.channel)>len(tsml.CHANNELS):
-        args.channel = args.channel[len(tsml.CHANNELS):]
 
     # Start
     start_end_logger = TimeLogger(f"cross_validation.py\tStart\t{args}", "cross_validation.py\tDone\t{duration:.2f}")
@@ -31,6 +33,7 @@ if __name__ == '__main__':
     model: str = args.model
     channels: list[tsml.Channel] = args.channel
     person_dependent: bool = args.person_dependent
+    familiarity: str | None = args.familiarity
     
     # Paths
     input_filename: str = os.path.join(
@@ -49,7 +52,7 @@ if __name__ == '__main__':
             'ws': window_size or 'all',
             'wo': window_overlap,
             'mo': model,
-            'ch': ".".join(channels),
+            'ch': channels and ".".join(channels) or "all",
             'pd': person_dependent and 'yes' or 'no'
         }) + ".csv"
     )
@@ -58,10 +61,19 @@ if __name__ == '__main__':
     # Load Features
     with TimeLogger("Loading Features".ljust(20), "Done\t{duration:.2f}", separator="\t"):
         df: pandas.DataFrame = pandas.read_csv(input_filename, index_col=False)
+        
+        familiarities = load_familiarities()
+        df['Familiarity'] = df.apply(lambda row: str(familiarities.get_group((int(row[tsml.PARTICIPANT_COLUMN]), int(row[tsml.TRIAL_COLUMN])))['familiarity'].values[0]), axis=1)
+        if familiarity:
+            df = df[df['Familiarity'] == familiarity]
+            df.reset_index(inplace=True)
+        
         additional_info = df[tsml.ADDITIONAL_COLUMNS]
-        labels = df[tsml.LABEL_COLUMN]
         df.drop(columns=tsml.ADDITIONAL_COLUMNS, inplace=True)
-        df.drop(columns=[column for column in df.columns if not any(column.startswith(channel) for channel in channels)], inplace=True)
+        
+        if channels:
+            df.drop(columns=[column for column in df.columns if not any(column.startswith(channel) for channel in channels)], inplace=True)
+        
         if df.empty:
             print("Empty dataframe", end="\t")
             exit()
@@ -79,7 +91,7 @@ if __name__ == '__main__':
         for i, (split_name, split_index) in enumerate(splits.items(), start=1):
             with TimeLogger("\t" + f"{i} / {len(splits)}".ljust(10), "Done\t{duration:.2f}", separator="\t"):
                 split_features = df.iloc[split_index]
-                split_labels = labels.iloc[split_index]
+                split_labels = additional_info[tsml.LABEL_COLUMN].iloc[split_index]
 
                 split_results = pandas.DataFrame(additional_info.iloc[split_index])
                 split_results['Prediction'] = cross_val_predict(

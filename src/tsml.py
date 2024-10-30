@@ -45,8 +45,8 @@ TSFEL_FEATURES = [feature for domain in tsfel.get_features_by_domain().values() 
 type Channel = typing.Literal["CH1","CH2","CH3","CH4","CH5"]
 CHANNELS: tuple[str] =       ["CH1","CH2","CH3","CH4","CH5"]
 
-type AdditionalColumn = typing.Literal["Participant", "Trial", "Label"]
-ADDITIONAL_COLUMNS: tuple[str] =      ["Participant", "Trial", "Label"]
+type AdditionalColumn = typing.Literal["Participant", "Trial", "Label", "Familiarity"]
+ADDITIONAL_COLUMNS: tuple[str] =      ["Participant", "Trial", "Label", "Familiarity"]
 LABEL_COLUMN = "Label"
 PARTICIPANT_COLUMN = "Participant"
 TRIAL_COLUMN = "Trial"

@@ -6,6 +6,7 @@ dependencies:
   - python=3.12
   - pandas=2.2.2
   - pip=24.2
+  - openpyxl=3.1.5
   - pip:
     - pillow==10.4.0
     - pylsl==1.16.2
