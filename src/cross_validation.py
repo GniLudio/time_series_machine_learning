@@ -53,7 +53,8 @@ if __name__ == '__main__':
             'wo': window_overlap,
             'mo': model,
             'ch': channels and ".".join(channels) or "all",
-            'pd': person_dependent and 'yes' or 'no'
+            'pd': person_dependent and 'yes' or 'no',
+            'fa': familiarity
         }) + ".csv"
     )
     os.makedirs(os.path.dirname(output_filename), exist_ok=True)
