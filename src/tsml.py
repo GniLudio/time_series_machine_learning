@@ -46,7 +46,7 @@ type Channel = typing.Literal["CH1","CH2","CH3","CH4","CH5"]
 CHANNELS: tuple[str] =       ["CH1","CH2","CH3","CH4","CH5"]
 
 type AdditionalColumn = typing.Literal["Participant", "Trial", "Label", "Familiarity"]
-ADDITIONAL_COLUMNS: tuple[str] =      ["Participant", "Trial", "Label", "Familiarity"]
+ADDITIONAL_COLUMNS: list[str] =      ["Participant", "Trial", "Label", "Familiarity"]
 LABEL_COLUMN = "Label"
 PARTICIPANT_COLUMN = "Participant"
 TRIAL_COLUMN = "Trial"
@@ -78,7 +78,5 @@ RESOURCES_PREVIEWS_DIRECTORY = os.path.join(RESOURCES_DIRECTORY, 'previews')
 FEATURES_DIRECTORY = os.path.join(DATA_DIRECTORY, 'features')
 # CROSS VALIDATION
 CROSS_VALIDATION_DIRECTORY = os.path.join(DATA_DIRECTORY, 'cross_validation')
-CROSS_VALIDATION_PERSON_DEPENDENT_DIRECTORY = os.path.join(CROSS_VALIDATION_DIRECTORY, 'person_dependent')
-CROSS_VALIDATION_PERSON_INDEPENDENT_DIRECTORY = os.path.join(CROSS_VALIDATION_DIRECTORY, 'person_independent')
 # IMAGES
 IMAGES_DIRECTORY = os.path.join(DATA_DIRECTORY, 'images')

@@ -10,20 +10,17 @@ import numpy
 import utils
 import tsml
 
-def create_confusion_matrix():
-    pass
-
 def get_annotation(filename: str) -> str:
     parts = utils.get_filename_parts(filename)
-    annotation = f"Model: {parts['mo']} - Window Size: {parts['ws'] != 'all' and parts['ws'] or "Full Length"} - Person Dependent: {parts['pd']}"
+    annotation = f"Familiarity: {'fa' in parts and parts['fa'] or 'all'} - Person Dependent: {parts['pd']} - Model: {parts['mo']} - Window Size: {parts['ws'] != 'all' and parts['ws'] or "Full Length"} "
     return annotation
 
 def get_title(filename: str) -> str:
-    stem = pathlib.Path(filename).stem
-    if stem.startswith("cvp_"):
-        return "Person-Dependent Cross-Validation"
-    elif stem.startswith("cvi_"):
+    parts = utils.get_filename_parts(filename)
+    if 'pd' not in parts or parts['pd'] == 'no':
         return "Person-Independent Cross-Validation"
+    else:
+        return "Person-Dependent Cross-Validation"
     
 def create_confusion_matrix(title: str, annotation: str, data: pandas.DataFrame, label_column: str = tsml.LABEL_COLUMN, prediction_column: str = tsml.PREDICTION_COLUMN) -> ConfusionMatrixDisplay:
     y_true = data[label_column]
@@ -101,18 +98,23 @@ if __name__ == "__main__":
 
     os.makedirs(tsml.IMAGES_DIRECTORY, exist_ok=True)
 
-    for filename in glob.glob(os.path.join(tsml.CROSS_VALIDATION_DIRECTORY, "*", "*.csv")):
+    for filename in glob.glob(os.path.join(tsml.CROSS_VALIDATION_DIRECTORY, "*.csv")):
         print(pathlib.Path(filename).stem)
-        output_directory = os.path.join(tsml.IMAGES_DIRECTORY, pathlib.Path(filename).stem)
-        os.makedirs(output_directory, exist_ok=True)
+
         title = get_title(filename)
         annotation = get_annotation(filename)
 
+        output_directory = os.path.join(tsml.IMAGES_DIRECTORY, pathlib.Path(filename).stem)
+        os.makedirs(output_directory, exist_ok=True)
         parts = utils.get_filename_parts(filename)
         base_filename = os.path.join(
             output_directory,
-            pathlib.Path(filename).stem.split("_")[0] + "_" + 
-            parts['ws'] + "_"
+            'cv_' +
+            utils.join_filename_parts({
+                'pd': parts['pd'],
+                'fa': 'fa' in parts and parts['fa'] or 'all',
+            }) + 
+            '_'
         )
 
         data = pandas.read_csv(filepath_or_buffer=filename)
@@ -149,7 +151,7 @@ if __name__ == "__main__":
             participant: accuracy_score(y_true=l_data[tsml.LABEL_COLUMN], y_pred=l_data[tsml.PREDICTION_COLUMN]) 
             for participant in participants 
             if (l_data := data[data[tsml.PARTICIPANT_COLUMN] == participant]) is not None
-        }.items(), key=lambda x: x[0])
+        }.items(), key=lambda x: x[1])
         barplot_participants = create_barplot(
             title = title,
             annotation = annotation,

@@ -4,7 +4,7 @@ from argparse import ArgumentParser
 import tsml
 import os
 import pandas
-from sklearn.model_selection import cross_val_predict
+from sklearn.model_selection import cross_val_predict, StratifiedKFold
 import models
 
 def load_familiarities() -> pandas.api.typing.DataFrameGroupBy:
@@ -45,8 +45,8 @@ if __name__ == '__main__':
         }) + ".csv"
     )
     output_filename = os.path.join(
-        person_dependent and tsml.CROSS_VALIDATION_PERSON_DEPENDENT_DIRECTORY or tsml.CROSS_VALIDATION_PERSON_INDEPENDENT_DIRECTORY,
-        (person_dependent and 'cvp_' or 'cvi_') +
+        tsml.CROSS_VALIDATION_DIRECTORY,
+        'cv_' +
         join_filename_parts({
             'do': domain,
             'ws': window_size or 'all',
@@ -63,14 +63,14 @@ if __name__ == '__main__':
     with TimeLogger("Loading Features".ljust(20), "Done\t{duration:.2f}", separator="\t"):
         df: pandas.DataFrame = pandas.read_csv(input_filename, index_col=False)
         
-        familiarities = load_familiarities()
-        df['Familiarity'] = df.apply(lambda row: str(familiarities.get_group((int(row[tsml.PARTICIPANT_COLUMN]), int(row[tsml.TRIAL_COLUMN])))['familiarity'].values[0]), axis=1)
         if familiarity:
+            familiarities = load_familiarities()
+            df['Familiarity'] = df.apply(lambda row: str(familiarities.get_group((int(row[tsml.PARTICIPANT_COLUMN]), int(row[tsml.TRIAL_COLUMN])))['familiarity'].values[0]), axis=1)
             df = df[df['Familiarity'] == familiarity]
             df.reset_index(inplace=True)
         
-        additional_info = df[tsml.ADDITIONAL_COLUMNS]
-        df.drop(columns=tsml.ADDITIONAL_COLUMNS, inplace=True)
+        additional_info = df[df.columns.intersection(tsml.ADDITIONAL_COLUMNS)]
+        df.drop(columns=df.columns.intersection(tsml.ADDITIONAL_COLUMNS), inplace=True)
         
         if channels:
             df.drop(columns=[column for column in df.columns if not any(column.startswith(channel) for channel in channels)], inplace=True)
@@ -92,13 +92,18 @@ if __name__ == '__main__':
         for i, (split_name, split_index) in enumerate(splits.items(), start=1):
             with TimeLogger("\t" + f"{i} / {len(splits)}".ljust(10), "Done\t{duration:.2f}", separator="\t"):
                 split_features = df.iloc[split_index]
-                split_labels = additional_info[tsml.LABEL_COLUMN].iloc[split_index]
+                split_labels: pandas.DataFrame = additional_info[tsml.LABEL_COLUMN].iloc[split_index]
+                # default: stratified-k-fold with 5 groups
+                # if a label has less than 5 samples, the number of groups is lowered
+                n_splits = split_labels.value_counts().min()
+
 
                 split_results = pandas.DataFrame(additional_info.iloc[split_index])
                 split_results['Prediction'] = cross_val_predict(
                     estimator = estimator,
                     X = split_features,
                     y = split_labels,
+                    cv = n_splits < 5 and n_splits or None
                 )
                 split_results.to_csv(path_or_buf=output_filename, index=False, header=(i==1), mode=(i==1) and 'w' or 'a')
 
