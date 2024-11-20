@@ -153,7 +153,9 @@ def setup_ui() -> tkinter.Tk:
     next_button = tkinter.ttk.Button(controls_container, name="next_label", text="NEXT", command=next_label)
     next_button.grid(row=2, column=0, sticky="n", padx=10, pady=10)
     window.bind(sequence=NEXT_LABEL_EVENT, func=lambda _: next_button.configure(state="disabled"), add=True)
+    window.bind(sequence=START_RECORDING_EVENT, func=lambda _: next_button.configure(state="disabled"), add=True)
     window.bind(sequence=FEEDBACK_CHANGED_EVENT, func=lambda _: next_button.configure(state=window.getvar("feedback") > 0 and 'active' or 'disabled'), add=True)
+    window.bind(sequence=STOP_RECORDING_EVENT, func=lambda _: next_button.configure(state=window.getvar("feedback") > 0 and 'active' or 'disabled'), add=True)
     # TODO: Enable next button after feedback is given
 
     return window
@@ -271,6 +273,10 @@ def setup_videos(window: tkinter.Tk, webcam_path: str, preview_path: str) -> tup
 
     return webcam, previews
 
+def create_opensignals_connection() -> None | pylsl.StreamInlet:
+    time_series_stream_info = next((stream_info for stream_info in pylsl.resolve_streams() if stream_info.name() == "OpenSignals"), None)
+    return time_series_stream_info is not None and pylsl.StreamInlet(time_series_stream_info, recover=False) or None
+
 # Actions
 def toggle_preview():
     global window, previews
@@ -323,12 +329,29 @@ def update_recording():
     global window, time_series_buffer, time_series_inlet
 
     if time_series_inlet is not None:
-        if not window.getvar(name="recording_active"):
-            time_series_inlet.flush()
-        else:
+        try:
             (samples, _) = time_series_inlet.pull_chunk()
-            if samples is not None and len(samples) > 0 :
+            if window.getvar(name="recording_active") and samples is not None and len(samples) > 0 :
                 time_series_buffer.extend(samples)
+        except pylsl.LostError as e:
+            print("Lost OpenSignals connection")
+            time_series_inlet.close_stream()
+            window.setvar("recording_active", False)
+            
+
+            ok = tkinter.messagebox.showerror("OpenSignals Connection", "Lost the connection to OpenSignals.\nPlease restart the OpenSignals connection.\n\nThe connection must be restarted BEFORE pressing 'OK'.")
+            if ok == "ok":
+                time_series_inlet = create_opensignals_connection()
+                if time_series_inlet is None:
+                    tkinter.messagebox.showwarning("OpenSignals Connection", "Couldn't restart the OpenSignals connection")
+                    print("\tCouldn't restart the connection")
+                else:
+                    print("\tRestarted the connection")
+            else:
+                print("\tDiscards the connection")
+                time_series_inlet = None
+
+
 
     if window.getvar("recording_active") and time.time() - window.getvar("recording_start") >= tsml.RECORDING_APP_EXPRESSION_DURATION:
         window.setvar(name="recording_active", value=False)
@@ -351,7 +374,7 @@ def save_recording(participant: str, session: int, emg_positioning: str, trial: 
     time_series_filename = get_time_series_output_filename(base_filename)
     os.makedirs(os.path.dirname(time_series_filename), exist_ok=True)
     time_series_df = pandas.DataFrame(data = {
-        tsml.CHANNELS[i]: [sample[i+1] for sample in time_series_data]
+        tsml.CHANNELS[i]: [ len(sample) > i+1 and sample[i+1] or None for sample in time_series_data]
         for i in range(len(tsml.CHANNELS))
     })
     time_series_df.to_csv(path_or_buf=time_series_filename,index=False)
@@ -643,8 +666,7 @@ if __name__ == '__main__':
         recording_active_variable.trace_add(mode="write", callback=lambda _, __, ___: window.event_generate(recording_active_variable.get() and START_RECORDING_EVENT or STOP_RECORDING_EVENT))
         recording_active_variable.trace_add(mode="write", callback=lambda _, __, ___: recording_start_variable.set(value=recording_active_variable.get() and time.time() or recording_start_variable.get()))
 
-        time_series_stream_info = next((stream_info for stream_info in pylsl.resolve_streams() if stream_info.name() == "OpenSignals"), None)
-        time_series_inlet = time_series_stream_info is not None and pylsl.StreamInlet(time_series_stream_info) or None
+        time_series_inlet = create_opensignals_connection()
         feedback_variable: tkinter.IntVar = tkinter.IntVar(window, name="feedback")
         feedback_variable.trace_add(mode="write", callback=lambda _, __, ___: window.event_generate(FEEDBACK_CHANGED_EVENT))
         time_series_buffer: list[list[float]] = []
