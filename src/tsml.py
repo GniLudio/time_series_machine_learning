@@ -62,8 +62,8 @@ RECORDING_APP_SURVEY_TITLE = "Survey"
 RECORDING_APP_SURVEY_QUESTIONS =  [
     { "type":"Slider1", "label": "How much did you feel the presence of the electrodes on the upper face?", "initial": 1.0, "min": 1.0, "max": 5.0},
     { "type":"Slider1", "label": "How much did you feel the presence of the electrodes on the lower face?", "initial": 1.0, "min": 1.0, "max": 5.0},
-    { "type":"Slider1", "label": "Comapred to having no electrodes, how difficult did it feel to move the muscles on the upper face?", "initial": 1.0, "min": 1.0, "max": 5.0},
-    { "type":"Slider1", "label": "Comapred to having no electrodes, how difficult did it feel to move the muscles on the upper face?", "initial": 1.0, "min": 1.0, "max": 5.0}
+    { "type":"Slider1", "label": "Compared to having no electrodes, how difficult did it feel to move the muscles on the upper face?", "initial": 1.0, "min": 1.0, "max": 5.0},
+    { "type":"Slider1", "label": "Compared to having no electrodes, how difficult did it feel to move the muscles on the lower face?", "initial": 1.0, "min": 1.0, "max": 5.0}
 ]
 '''
     { "type": "Text", "text": "Some Text"},

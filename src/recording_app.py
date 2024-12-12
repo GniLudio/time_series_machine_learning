@@ -40,7 +40,9 @@ SHOW_THEME_SELECTOR = False
 
 # Setup
 def setup_ui() -> tkinter.Tk:
+    print("setup_ui")
     # Window
+    print("setup_ui", "window")
     window = tkinter.Tk()
     window.minsize(width=720, height=480)
     window.withdraw()
@@ -51,6 +53,7 @@ def setup_ui() -> tkinter.Tk:
     window.bind(sequence=NEXT_LABEL_EVENT, func=lambda _: window.title(tsml.RECORDING_APP_TITLE(window)), add=True)
 
     # Style
+    print("setup_ui", "style")
     style = tkinter.ttk.Style(master=window)
     style.theme_use(themename=tsml.RECORDING_APP_THEME )
     style.configure(style='Sash', sashthickness=10)
@@ -58,14 +61,17 @@ def setup_ui() -> tkinter.Tk:
     style.configure(style="TButton", font=BUTTON_FONT)
 
     # Root
+    print("setup_ui", "root")
     root_container = tkinter.ttk.Panedwindow(master=window, name="root", orient='vertical')
     root_container.grid(row=0, column=0, sticky='nsew')
 
     ## Videos
+    print("setup_ui", "videos")
     video_container = tkinter.ttk.Panedwindow(master=root_container, name="videos", orient='horizontal')
     root_container.add(child=video_container, weight=1)
 
     ### Preview
+    print("setup_ui", "videos", "preview")
     preview_container = tkinter.ttk.Frame(master=video_container, name="preview")
     preview_container.grid_rowconfigure(index=0, weight=1)
     preview_container.grid_rowconfigure(index=1, weight=0)
@@ -93,6 +99,7 @@ def setup_ui() -> tkinter.Tk:
             label.grid(row=0, column=i, padx=0, pady=0, ipadx=0, ipady=0, sticky="ns")
 
     ### Seperator
+    print("setup_ui", "videos", "seperator")
     seperator_container = tkinter.ttk.Frame(master=video_container)
     seperator_container.grid_rowconfigure(index=0, weight=1)
     seperator_container.grid_columnconfigure(index=0, weight=1)
@@ -105,6 +112,7 @@ def setup_ui() -> tkinter.Tk:
         variable.trace_add("write", lambda _, __, ___: style.theme_use(variable.get() or style.theme_use()))
 
     ### Webcam
+    print("setup_ui", "videos", "webcam")
     webcam_container = tkinter.ttk.Frame(master=video_container, name="webcam")
     webcam_container.grid_rowconfigure(index=0, weight=1)
     webcam_container.grid_rowconfigure(index=1, weight=0)
@@ -119,6 +127,7 @@ def setup_ui() -> tkinter.Tk:
     window.bind(sequence=NEXT_LABEL_EVENT, func= lambda _: webcam_instruction.configure(text=tsml.RECORDING_APP_WEBCAM_INSTRUCTION(window)), add=True)
 
     ## Controls
+    print("setup_ui", "controls")
     controls_container = tkinter.ttk.Frame(master=root_container, name="controls")
     controls_container.grid_rowconfigure(index=0, weight=1)
     controls_container.grid_rowconfigure(index=1, weight=0)
@@ -127,6 +136,7 @@ def setup_ui() -> tkinter.Tk:
     root_container.add(child=controls_container, weight=0)
 
     ### Start Recording
+    print("setup_ui", "start/stop")
     start_recording_button = tkinter.ttk.Button(master=controls_container, name="start_recording", text="LOADING", command=lambda: window.setvar(name="recording_active", value=True))
     start_recording_button.configure(state='disabled')
     start_recording_button.grid(row=0, column=0, sticky="s", padx=10, pady=10)
@@ -136,6 +146,7 @@ def setup_ui() -> tkinter.Tk:
     window.bind(sequence=WEBCAM_FIRST_FRAME, func=lambda _: window.bind(sequence=NEXT_LABEL_EVENT, func=lambda _: start_recording_button.configure(state="active", text="START"), add=True), add=True)
 
     ### Feedback
+    print("setup_ui", "feedback")
     feedback_container = tkinter.ttk.Frame(master=controls_container, name="feedback")
     feedback_container.grid(row=1, column=0, padx=10, pady=0)
 
@@ -146,26 +157,28 @@ def setup_ui() -> tkinter.Tk:
         feedback_radiobutton.grid(row=1, column=i+1)
     set_radiobutton_states = lambda state: [isinstance(widget, tkinter.ttk.Radiobutton) and widget.configure(state=state) for widget in feedback_container.winfo_children()]
     window.bind(sequence=NEXT_LABEL_EVENT, func=lambda e: set_radiobutton_states('disabled'), add=True)
+    window.bind(sequence=START_RECORDING_EVENT, func=lambda e: set_radiobutton_states('disabled'), add=True)
     window.bind(sequence=STOP_RECORDING_EVENT, func=lambda e: set_radiobutton_states('normal'), add=True)
     tkinter.ttk.Label(master=feedback_container, text=tsml.RECORDING_APP_FEEDBACK_ANSWERS[1], font=FEEDBACK_ANSWER_FONT).grid(row=1, column=6)
 
     ### Next Label
+    print("setup_ui", "next_button")
     next_button = tkinter.ttk.Button(controls_container, name="next_label", text="NEXT", command=next_label)
     next_button.grid(row=2, column=0, sticky="n", padx=10, pady=10)
     window.bind(sequence=NEXT_LABEL_EVENT, func=lambda _: next_button.configure(state="disabled"), add=True)
     window.bind(sequence=START_RECORDING_EVENT, func=lambda _: next_button.configure(state="disabled"), add=True)
     window.bind(sequence=FEEDBACK_CHANGED_EVENT, func=lambda _: next_button.configure(state=window.getvar("feedback") > 0 and 'active' or 'disabled'), add=True)
     window.bind(sequence=STOP_RECORDING_EVENT, func=lambda _: next_button.configure(state=window.getvar("feedback") > 0 and 'active' or 'disabled'), add=True)
-    # TODO: Enable next button after feedback is given
 
     return window
 
 def open_survey():
     global window
-    print("Open Survey")
+    print("open_survey")
 
     window.withdraw()
 
+    print("open_survey", "toplevel")
     dialog = tkinter.Toplevel(window)
     dialog.title(tsml.RECORDING_APP_SURVEY_TITLE)
     dialog.protocol("WM_DELETE_WINDOW", on_exit)
@@ -177,6 +190,7 @@ def open_survey():
     dialog.grid_rowconfigure(index=0, weight=1)
     dialog.grid_columnconfigure(index=0, weight=1)
 
+    print("open_survey", "root")
     root = tkinter.ttk.Frame(dialog)
     root.grid_rowconfigure(index=0, weight=1)
     root.grid_columnconfigure(index=0, weight=1)
@@ -185,9 +199,13 @@ def open_survey():
     root = tkinter.ttk.LabelFrame(root)
     root.grid(row=0, column=0)
 
+    print("open_survey", "questions")
     variables: list[tkinter.Variable] = []
     for i, question in enumerate(tsml.RECORDING_APP_SURVEY_QUESTIONS):
+        print("open_survey", "questions", i, question)
         if question["type"] == "Text":
+            print("open_survey", "questions", i, question, "Header")
+
             label = tkinter.ttk.Label(root, text=question["text"], anchor="center", font=SURVEY_HEADER_FONT)
             label.grid(row=i, column=0, columnspan=2, padx=3, pady=3)
             continue
@@ -223,6 +241,7 @@ def open_survey():
             widget.grid(row=i, column=1, padx=10, pady=10, sticky="w")
             variables.append(variable)
 
+    print("open_survey", "submit")
     submit_button = tkinter.Button(root, text="Submit", font=SURVEY_SUBMIT_FONT, command=lambda: on_submit_survey(dialog, variables))
     submit_button.grid(row=len(tsml.RECORDING_APP_SURVEY_QUESTIONS)+1, column=0, columnspan=2, padx=10, pady=10)
 
@@ -232,6 +251,7 @@ def open_survey():
         tkinter.ttk.Combobox(dialog, values=style.theme_names(), textvariable=variable).grid()
         variable.trace_add("write", lambda _, __, ___: style.theme_use(variable.get()))
 
+    print("open_survey", "wait")
     dialog.wait_visibility()
     dialog.geometry(f"+{(dialog.winfo_screenwidth()) // 2}+{dialog.winfo_width() // 2}")
     dialog.grab_set()
@@ -240,6 +260,9 @@ def open_survey():
     tkinter.ttk.Style().theme_use(old_theme)
 
 def setup_videos(window: tkinter.Tk, webcam_path: str, preview_path: str) -> tuple['Webcam', dict[int, 'CV2Video']]:
+    print("setup_videos")
+
+    print("setup_videos", "webcam")
     webcam_video = window.nametowidget(webcam_path)
     webcam = Webcam(
         container=webcam_video, 
@@ -253,6 +276,7 @@ def setup_videos(window: tkinter.Tk, webcam_path: str, preview_path: str) -> tup
     window.bind(sequence=START_RECORDING_EVENT, func=lambda _: webcam.set_image_dirty(), add=True)
     window.bind(sequence=STOP_RECORDING_EVENT, func=lambda _: webcam.set_image_dirty(), add=True)
 
+    print("setup_videos", "preview")
     preview_video = window.nametowidget(preview_path)
     previews = {
         i: CV2Video(
@@ -274,6 +298,7 @@ def setup_videos(window: tkinter.Tk, webcam_path: str, preview_path: str) -> tup
     return webcam, previews
 
 def create_opensignals_connection() -> None | pylsl.StreamInlet:
+    print("create_opensignals_connection")
     time_series_stream_info = next((stream_info for stream_info in pylsl.resolve_streams() if stream_info.name() == "OpenSignals"), None)
     return time_series_stream_info is not None and pylsl.StreamInlet(time_series_stream_info, recover=False) or None
 
@@ -285,7 +310,9 @@ def toggle_preview():
 
 def next_label():
     global window, webcam_buffer, time_series_buffer, window_exited
+    print("next_label")
 
+    print("next_label", "save_recording")
     threading.Thread(
         target=save_recording, 
         daemon=False, 
@@ -302,16 +329,17 @@ def next_label():
     ).start()
 
     if window.getvar("label")+1 < tsml.RECORDING_APP_NUMBER_OF_EXPRESSIONS:
-        print("Next Label")
+        print("next_label", "Next Label")
         window.setvar(name="label", value=window.getvar("label")+1)
     else:
         #next_trial = tkinter.messagebox.askyesno(message=tsml.RECORDING_APP_CONTINUE_MESSAGE)
-        next_trial = False
+        next_trial = False # currently always only one trial
         if next_trial:
-            print("Next Trial")
+            print("next_label", "Next Trial")
             window.setvar(name="trial", value=window.getvar("trial")+1)
             window.setvar(name="label", value=0)
         elif not window.getvar("emg_switched"):
+            print("next_label", "switch emg")
             open_survey()
             tkinter.messagebox.showinfo(title="", message="Switch the electrode positioning.")
             window.state("zoomed")
@@ -321,46 +349,46 @@ def next_label():
             window.setvar(name="label", value=0)
             window.setvar(name="emg_switched", value=True)
         else:
+            print("next_label", "done")
             open_survey()
             tkinter.messagebox.showinfo(title="", message="Thanks for participating.")
             window_exited = True
 
 def update_recording():
     global window, time_series_buffer, time_series_inlet
-
     if time_series_inlet is not None:
         try:
             (samples, _) = time_series_inlet.pull_chunk()
-            if window.getvar(name="recording_active") and samples is not None and len(samples) > 0 :
+            if window.getvar(name="recording_active") and samples is not None and len(samples) > 0:
                 time_series_buffer.extend(samples)
         except pylsl.LostError as e:
-            print("Lost OpenSignals connection")
+            print("update_recording", "LostError")
             time_series_inlet.close_stream()
             window.setvar("recording_active", False)
+            window.event_generate(NEXT_LABEL_EVENT)
             
-
             ok = tkinter.messagebox.showerror("OpenSignals Connection", "Lost the connection to OpenSignals.\nPlease restart the OpenSignals connection.\n\nThe connection must be restarted BEFORE pressing 'OK'.")
             if ok == "ok":
                 time_series_inlet = create_opensignals_connection()
                 if time_series_inlet is None:
                     tkinter.messagebox.showwarning("OpenSignals Connection", "Couldn't restart the OpenSignals connection")
-                    print("\tCouldn't restart the connection")
+                    print("update_recording", "LostError", "Couldn't restart the connection")
                 else:
-                    print("\tRestarted the connection")
+                    print("update_recording", "LostError", "Restarted the connection")
             else:
-                print("\tDiscards the connection")
+                print("update_recording", "LostError", "Discards the connection")
                 time_series_inlet = None
 
-
-
     if window.getvar("recording_active") and time.time() - window.getvar("recording_start") >= tsml.RECORDING_APP_EXPRESSION_DURATION:
+        print("update_recording", "Recording done")
         window.setvar(name="recording_active", value=False)
         
 def save_recording(participant: str, session: int, emg_positioning: str, trial: int, label: int, time_series_data: tsml.TimeSeriesBuffer, webcam_data: tsml.WebcamBuffer, feedback_data: int):
     base_filename = get_base_output_filename(participant=participant, session=session, emg_positioning=emg_positioning, trial=trial, label=label)
-    print("Save Recording", base_filename)
+    print("save_recording", base_filename)
 
     webcam_filename = get_webcam_output_filename(base_filename)
+    print("save_recording", "webcam", webcam_filename)
     os.makedirs(os.path.dirname(webcam_filename), exist_ok=True)
     writer = cv2.VideoWriter(
         filename=webcam_filename, 
@@ -372,6 +400,7 @@ def save_recording(participant: str, session: int, emg_positioning: str, trial: 
         writer.write(frame)
 
     time_series_filename = get_time_series_output_filename(base_filename)
+    print("save_recording", "time_series", time_series_filename)
     os.makedirs(os.path.dirname(time_series_filename), exist_ok=True)
     time_series_df = pandas.DataFrame(data = {
         tsml.CHANNELS[i]: [ len(sample) > i+1 and sample[i+1] or None for sample in time_series_data]
@@ -380,18 +409,22 @@ def save_recording(participant: str, session: int, emg_positioning: str, trial: 
     time_series_df.to_csv(path_or_buf=time_series_filename,index=False)
 
     feedback_filename = get_feedback_output_filename(base_filename)
+    print("save_recording", "feedback", feedback_filename)
     os.makedirs(os.path.dirname(feedback_filename), exist_ok=True)
     with open(feedback_filename, 'w') as file:
         file.write(str(feedback_data))
 
 def on_exit():
     global window_exited, window
-    print("On Exit")
+    print("on_exit")
     window_exited = True
     window.destroy()
 
 def on_submit_survey(dialog: tkinter.Toplevel, variables: list[tkinter.Variable]):
     global window
+    print("on_submit_survey")
+
+    print("on_submit_survey", "get_variables")
     values = [str(variable.get()) for variable in variables]
     filename = get_survey_output_filename(
         get_base_output_filename(
@@ -402,11 +435,12 @@ def on_submit_survey(dialog: tkinter.Toplevel, variables: list[tkinter.Variable]
             label=None
         )
     )
-    print("Save Survey", filename, values)
 
+    print("on_submit_survey", filename, values)
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     pandas.DataFrame(data=values).to_csv(filename, header=False)
 
+    print("on_submit_survey", "close")
     dialog.destroy()
 
 # Paths
@@ -474,13 +508,16 @@ class CV2Video:
 
     def play(self):
         if self._frame_collector is None:
+            print("CV2Video", "play", self.filename_or_index)
             if self.use_threading:
+                print("CV2Video", "play", "thread")
                 self._frame_collector = threading.Thread(
                     target=self._collect_frames, 
                     args=(self._frame_sender, ),
                     daemon=True
                 )
             else:
+                print("CV2Video", "play", "process")
                 self._frame_collector = multiprocessing.Process(
                     target=self._collect_frames, 
                     args=(self._frame_sender, ),
@@ -490,16 +527,19 @@ class CV2Video:
             self.container.event_generate(sequence=VIDEO_PLAY_EVENT)
 
     def pause(self):
-        if self._frame_collector is not None:
+        if self._frame_collector is not None and self._frame_collector is not False:
+            print("CV2Video", "pause", self.filename_or_index)
             if self.use_threading:
+                print("CV2Video", "pause", "thread")
                 thread: threading.Thread = self._frame_collector
-                self._frame_collector = None
-                thread.join()
+                self._frame_collector = False
+                thread.join(10)
             else:
+                print("CV2Video", "pause", "process")
                 process: multiprocessing.Process = self._frame_collector
                 process.terminate()
                 process.close()
-                process.join()
+                process.join(10)
                 self._frame_collector = None
 
             self.container.event_generate(sequence=VIDEO_PAUSE_EVENT)
@@ -507,12 +547,14 @@ class CV2Video:
             self.set_image_dirty()
 
     def toggle_play_pause(self):
+        print("CV2Video", "toggle_play_pause", self.filename_or_index, self._frame_collector is None)
         if self._frame_collector is None:
             self.play()
         else:
             self.pause()
 
     def reset(self):
+        print("CV2Video", "reset", self.filename_or_index)
         self.pause()
         self.frame_number = 0
 
@@ -537,6 +579,8 @@ class CV2Video:
         self._image_needs_update = True
 
     def _collect_first_frame(self):
+        print("CV2Video", "collect_first_frame", self.filename_or_index)
+
         """Collects the first frame."""
         try:
             capture = self._create_capture()
@@ -554,7 +598,7 @@ class CV2Video:
             if self.use_fps_delay:
                 duration_per_frame = 1 / (capture.get(cv2.CAP_PROP_FPS) or 1) / self.playback_speed
                 next_frame_time = time.time()
-            while not sender.closed and (not self.use_threading or self._frame_collector is not None):
+            while not sender.closed and (not self.use_threading or (self._frame_collector is not False and self._frame_collector is not None)):
                 success, frame = capture.read()
                 if success:
                     sender.send(frame)
@@ -569,6 +613,7 @@ class CV2Video:
                     duration_to_next_frame = next_frame_time - time.time()
                     if duration_to_next_frame > 0:
                         time.sleep(duration_to_next_frame)
+            self._frame_collector = None
         finally:
             capture.release()
 
@@ -652,14 +697,14 @@ if __name__ == '__main__':
     start_end_logger.start()
     window_exited = False
 
-    with TimeLogger("Setup UI", "Done\t{duration:.2f}", separator="\t"):
+    with TimeLogger("Setup UI", "Setup UI\tDone\t{duration:.2f}"):
         window = setup_ui()
-    with TimeLogger("Setup Videos", "Done\t{duration:.2f}", separator="\t"):
+    with TimeLogger("Setup Videos", "Setup Videos\tDone\t{duration:.2f}"):
         (webcam, previews) = setup_videos(window, 'root.videos.webcam.video', 'root.videos.preview.video')
         webcam.play()
 
     # Recording
-    with TimeLogger("Setup Recording Variables", "Done"):
+    with TimeLogger("Setup Recording Variables", "Setup Recording Variables\tDone\t{duration:.2f}"):
         recording_active_variable = tkinter.BooleanVar(master=window, name="recording_active", value=False)
         recording_start_variable = tkinter.Variable(master=window, name="recording_start", value=0.0)
         recording_active_variable.trace_add(mode="write", callback=lambda _, __, ___: print(recording_active_variable.get() and "Start Recording" or "Stop Recording"))
@@ -673,6 +718,7 @@ if __name__ == '__main__':
         webcam_buffer: list[list[int]] = []
         window.bind(sequence=START_RECORDING_EVENT, func=lambda _: (print("Clear Time Series"), time_series_buffer.clear()), add=True)
         window.bind(sequence=START_RECORDING_EVENT, func=lambda _: webcam_buffer.clear(), add=True)
+        window.bind(sequence=START_RECORDING_EVENT, func=lambda _: feedback_variable.set(-1), add=True)
         window.bind(sequence=NEXT_LABEL_EVENT, func=lambda _: feedback_variable.set(-1), add=True)
 
         if time_series_inlet is None:
@@ -681,7 +727,7 @@ if __name__ == '__main__':
             tkinter.messagebox.showerror(message=f"Wrong number of OpenSignal channels.\nGot: {time_series_inlet.channel_count-1}\nExpected: {len(tsml.CHANNELS)}\nPlease restart the app")
 
     # Indentifier
-    with TimeLogger("Setup Identifier", "Done", separator="\t"):
+    with TimeLogger("Setup Identifier", "Setup Identifier\tDone\t{duration:.2f}"):
         participant_value = tkinter.simpledialog.askstring(title="Participant", prompt="Enter the participant identifier:\t\t", parent=window) or 'test'
         emg_positioning_value = ask_selection(question="Which EMG positioning is used?", values=EMG_POSITIONS, title="EMG Positioning", master=window, font=FEEDBACK_QUESTION_FONT)
         session_value = next(i for i in range(tsml.RECORDING_APP_MAX_SESSION_NUMBER) if not does_session_exist(participant=participant_value, session=i))
