@@ -333,9 +333,10 @@ def next_label():
         window.setvar(name="label", value=window.getvar("label")+1)
     else:
         #next_trial = tkinter.messagebox.askyesno(message=tsml.RECORDING_APP_CONTINUE_MESSAGE)
-        next_trial = False # currently always only one trial
+        next_trial = window.getvar("trial")+1 < tsml.RECORDING_APP_TRIAL_COUNT
         if next_trial:
             print("next_label", "Next Trial")
+            tkinter.messagebox.showinfo(title="Next Trial", message="Trial done.\nContinue with the next trial.")
             window.setvar(name="trial", value=window.getvar("trial")+1)
             window.setvar(name="label", value=0)
         elif not window.getvar("emg_switched"):
@@ -402,9 +403,11 @@ def save_recording(participant: str, session: int, emg_positioning: str, trial: 
     time_series_filename = get_time_series_output_filename(base_filename)
     print("save_recording", "time_series", time_series_filename)
     os.makedirs(os.path.dirname(time_series_filename), exist_ok=True)
+    channel_count = max(len(sample)-1 for sample in time_series_data)
     time_series_df = pandas.DataFrame(data = {
-        tsml.CHANNELS[i]: [ len(sample) > i+1 and sample[i+1] or None for sample in time_series_data]
-        for i in range(len(tsml.CHANNELS))
+        i < len(tsml.CHANNELS) and tsml.CHANNELS[i] or str(i+1): 
+            [ len(sample) > i+1 and sample[i+1] or None for sample in time_series_data]
+        for i in range(channel_count)
     })
     time_series_df.to_csv(path_or_buf=time_series_filename,index=False)
 
@@ -722,8 +725,10 @@ if __name__ == '__main__':
         window.bind(sequence=NEXT_LABEL_EVENT, func=lambda _: feedback_variable.set(-1), add=True)
 
         if time_series_inlet is None:
+            print("No OpenSignals stream found")
             tkinter.messagebox.showerror(message="No OpenSignals stream found\nPlease restart the app")
         elif time_series_inlet.channel_count-1 != len(tsml.CHANNELS):
+            print(f"Wrong number of OpenSignal channels.\tGot: {time_series_inlet.channel_count-1} - Expected: {len(tsml.CHANNELS)}")
             tkinter.messagebox.showerror(message=f"Wrong number of OpenSignal channels.\nGot: {time_series_inlet.channel_count-1}\nExpected: {len(tsml.CHANNELS)}\nPlease restart the app")
 
     # Indentifier
