@@ -7,7 +7,7 @@ import tsfel
 SAMPLING_FREQUENCY = 2000
 
 # RECORDING APP
-RECORDING_APP_NUMBER_OF_EXPRESSIONS = 17
+RECORDING_APP_NUMBER_OF_EXPRESSIONS = 5
 RECORDING_APP_EXPRESSION_DURATION = 5
 RECORDING_APP_TRIAL_COUNT = 3
 RECORDING_APP_WEBCAM_RESOLUTION_WIDTH = 1920 # to bypass opencv default webcam resolution of (640, 480)
@@ -21,50 +21,33 @@ RECORDING_APP_FEEDBACK_QUESTION = "How satisfied were you with the expression?"
 RECORDING_APP_FEEDBACK_ANSWERS = ["Not at all", "Very"]
 RECORDING_APP_PREVIEW_INSTRUCTION = lambda window: ([
     "Keep your expression neutral and relaxed.", #AU0
-    "Raise the inner corners of your eyebrows **strongly**.", # AU1
-    "Raise the inner corners of your eyebrows **slightly**.", # AU1
-    "Raise the outer corners of your eyebrows **strongly**.", # AU2
-    "Raise the outer corners of your eyebrows **slightly**.", # AU2
-    "Lower your eyebrows and draw them together **strongly**.", # AU4
-    "Lower your eyebrows and draw them together **slightly**.", # AU4
-    "Wrinkle your nose, letting your lips part **strongly**.", # AU9
-    "Wrinkle your nose, letting your lips part **slightly**.", # AU9
-    "Let the corners of your lips come up **strongly**.", # AU12
-    "Let the corners of your lips come up **slightly**.", # AU12
-    "Push your lower lip up, thereby raising your chin **strongly**.", # AU17
-    "Push your lower lip up, thereby raising your chin **slightly**.", # AU17
-    "Stretch your mouth horizontally, pulling your lip corners back toward your ears **strongly**.", # AU20
-    "Stretch your mouth horizontally, pulling your lip corners back toward your ears **slightly**.", # AU20
-    "Press your lips together **strongly**.", # AU24
-    "Press your lips together **slightly**.", # AU24
+    "Raise the inner corners of your eyebrows.", # AU1 
+    "Raise the outer corners of your eyebrows.", # AU2 
+    "Lower your eyebrows and draw them together", # AU4 
+    "Wrinkle your nose, letting your lips part.", # AU9 
 ])[window.getvar("label")]
 RECORDING_APP_WEBCAM_INSTRUCTION = lambda window: f"Start and then hold the expression for {RECORDING_APP_EXPRESSION_DURATION}s after pressing the START button."
 RECORDING_APP_TITEL_LABEL_NAMES = [
     " 0 (Neutral)",
-    " 1 (Strong)", " 1 (Slightly)",
-    " 2 (Strong)", " 2 (Slightly)",
-    " 4 (Strong)", " 4 (Slightly)",
-    " 9 (Strong)", " 9 (Slightly)",
-    "12 (Strong)", "12 (Slightly)",
-    "17 (Strong)", "17 (Slightly)",
-    "20 (Strong)", "20 (Slightly)",
-    "24 (Strong)", "24 (Slightly)",
+    " 1"
+    " 2"
+    " 4"
+    " 9"
 ]
 RECORDING_APP_TITLE = lambda window: (
     "TSML" 
     + f" - Participant {window.getvar("participant")}" 
     + f" - Session {window.getvar("session")}"
-    + f" - EMG-Positioning {window.getvar("emg_positioning")}"
     + f" - Trial {window.getvar("trial")}"
     + f" - Action Unit {RECORDING_APP_TITEL_LABEL_NAMES[window.getvar("label")]}"
     + f" - {window.getvar("label")}"
 )
 RECORDING_APP_SURVEY_TITLE = "Survey"
 RECORDING_APP_SURVEY_QUESTIONS =  [
-    { "type":"Slider1", "label": "How much did you feel the presence of the electrodes on the upper face?", "initial": 1.0, "min": 1.0, "max": 5.0},
-    { "type":"Slider1", "label": "How much did you feel the presence of the electrodes on the lower face?", "initial": 1.0, "min": 1.0, "max": 5.0},
-    { "type":"Slider1", "label": "Compared to having no electrodes, how difficult did it feel to move the muscles on the upper face?", "initial": 1.0, "min": 1.0, "max": 5.0},
-    { "type":"Slider1", "label": "Compared to having no electrodes, how difficult did it feel to move the muscles on the lower face?", "initial": 1.0, "min": 1.0, "max": 5.0}
+    #{ "type":"Slider1", "label": "How much did you feel the presence of the electrodes on the upper face?", "initial": 1.0, "min": 1.0, "max": 5.0},
+    #{ "type":"Slider1", "label": "How much did you feel the presence of the electrodes on the lower face?", "initial": 1.0, "min": 1.0, "max": 5.0},
+    #{ "type":"Slider1", "label": "Compared to having no electrodes, how difficult did it feel to move the muscles on the upper face?", "initial": 1.0, "min": 1.0, "max": 5.0},
+    #{ "type":"Slider1", "label": "Compared to having no electrodes, how difficult did it feel to move the muscles on the lower face?", "initial": 1.0, "min": 1.0, "max": 5.0}
 ]
 '''
     { "type": "Text", "text": "Some Text"},
@@ -74,13 +57,13 @@ RECORDING_APP_SURVEY_QUESTIONS =  [
     { "type":"Dropdown", "label": "Question 4", "initial": "Initial Dropdown", "values": ["Initial Dropdown", "Other Dropdown", "Another Dropdown"]},
     { "type":"Slider1", "label": "Question 5", "initial": 3.0, "min": 1.0, "max": 5.0},
     { "type":"Slider2", "label": "Question 5", "initial": 50.0, "min": 1.0, "max": 100.0},
-    { "type": "Spinbox", "label": "Question 6", "initial": 33, "min": 3, "max": 333, "step": 11}'''
+    { "type": "Spinbox", "label": "Question 6", "initial": 33, "min": 3, "max": 333, "step": 11}
+'''
 
 RECORDING_APP_INSTRUCTIONS = f"""
 In the following study you will perform multiple action units.
 
-There are a total of 8 action units (+1 neutral):
-Each must to be performed first strongly and then weakly.
+There are a total of {RECORDING_APP_NUMBER_OF_EXPRESSIONS-1} action units (+1 neutral):
 
 For each action unit:
 1. Read the description.
@@ -97,8 +80,8 @@ type TsfelFeatureDomain = typing.Literal["all", "statistical", "temporal", "spec
 TSFEL_FEATURE_DOMAINS: tuple[str] =     ["all"] + [tsfel.get_features_by_domain().keys()]
 TSFEL_FEATURES = [feature for domain in tsfel.get_features_by_domain().values() for feature in domain.keys()]
 # Columns
-type Channel = typing.Literal["Channel 1", "Channel 2", "Channel 3", "Channel 4", "Channel 5", "Channel 6"]
-CHANNELS: tuple[str] =       ["Channel 1", "Channel 2", "Channel 3", "Channel 4", "Channel 5", "Channel 6"]
+type Channel = typing.Literal["Channel 1", "Channel 2", "Channel 3", "Channel 4"]
+CHANNELS: tuple[str] =       ["Channel 1", "Channel 2", "Channel 3", "Channel 4"]
 
 type AdditionalColumn = typing.Literal["Participant", "Session", "Trial", "Action Unit", "Feedback"]
 ADDITIONAL_COLUMNS: tuple[str] =      ["Participant", "Session", "Trial", "Action Unit", "Feedback"]

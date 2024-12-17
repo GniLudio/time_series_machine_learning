@@ -9,7 +9,8 @@ import os
 import time
 import math
 import pandas
-from utils import TimeLogger, ask_selection, join_filename_parts
+from utils import TimeLogger, join_filename_parts
+from argparse import ArgumentParser
 
 import tsml
 
@@ -31,9 +32,6 @@ START_RECORDING_EVENT = "<<StartRecording>>"
 STOP_RECORDING_EVENT = "<<StopRecording>>"
 FEEDBACK_CHANGED_EVENT = "<<FeedbackChanged>>"
 WEBCAM_FIRST_FRAME = "<<WebcamFirstFrame>>"
-
-# MISC
-EMG_POSITIONS = ["A", "B"]
 
 # Debugging
 SHOW_THEME_SELECTOR = False
@@ -175,6 +173,10 @@ def setup_ui() -> tkinter.Tk:
 def open_survey():
     global window
     print("open_survey")
+
+    if len(tsml.RECORDING_APP_SURVEY_QUESTIONS) == 0:
+        print("open_survey", "No questions")
+        return
 
     window.withdraw()
 
@@ -319,7 +321,6 @@ def next_label():
         args=(
             window.getvar("participant"), 
             window.getvar("session"), 
-            window.getvar("emg_positioning"), 
             window.getvar("trial"), 
             window.getvar("label"), 
             time_series_buffer.copy(), 
@@ -339,16 +340,6 @@ def next_label():
             tkinter.messagebox.showinfo(title="Next Trial", message="Trial done.\nContinue with the next trial.")
             window.setvar(name="trial", value=window.getvar("trial")+1)
             window.setvar(name="label", value=0)
-        elif not window.getvar("emg_switched"):
-            print("next_label", "switch emg")
-            open_survey()
-            tkinter.messagebox.showinfo(title="", message="Switch the electrode positioning.")
-            window.state("zoomed")
-            window.deiconify()
-            window.setvar(name="emg_positioning", value=next(p for p in EMG_POSITIONS if p != window.getvar("emg_positioning")))
-            window.setvar(name="trial", value=0)
-            window.setvar(name="label", value=0)
-            window.setvar(name="emg_switched", value=True)
         else:
             print("next_label", "done")
             open_survey()
@@ -384,8 +375,8 @@ def update_recording():
         print("update_recording", "Recording done")
         window.setvar(name="recording_active", value=False)
         
-def save_recording(participant: str, session: int, emg_positioning: str, trial: int, label: int, time_series_data: tsml.TimeSeriesBuffer, webcam_data: tsml.WebcamBuffer, feedback_data: int):
-    base_filename = get_base_output_filename(participant=participant, session=session, emg_positioning=emg_positioning, trial=trial, label=label)
+def save_recording(participant: str, session: int, trial: int, label: int, time_series_data: tsml.TimeSeriesBuffer, webcam_data: tsml.WebcamBuffer, feedback_data: int):
+    base_filename = get_base_output_filename(participant=participant, session=session, trial=trial, label=label)
     print("save_recording", base_filename)
 
     webcam_filename = get_webcam_output_filename(base_filename)
@@ -403,7 +394,7 @@ def save_recording(participant: str, session: int, emg_positioning: str, trial: 
     time_series_filename = get_time_series_output_filename(base_filename)
     print("save_recording", "time_series", time_series_filename)
     os.makedirs(os.path.dirname(time_series_filename), exist_ok=True)
-    channel_count = max(len(sample)-1 for sample in time_series_data)
+    channel_count = max(len(sample)-1 for sample in (time_series_data + [0]))
     time_series_df = pandas.DataFrame(data = {
         i < len(tsml.CHANNELS) and tsml.CHANNELS[i] or str(i+1): 
             [ len(sample) > i+1 and sample[i+1] or None for sample in time_series_data]
@@ -433,7 +424,6 @@ def on_submit_survey(dialog: tkinter.Toplevel, variables: list[tkinter.Variable]
         get_base_output_filename(
             participant = window.getvar("participant"), 
             session = window.getvar("session"), 
-            emg_positioning= window.getvar("emg_positioning"),
             trial=window.getvar("trial"), 
             label=None
         )
@@ -447,11 +437,10 @@ def on_submit_survey(dialog: tkinter.Toplevel, variables: list[tkinter.Variable]
     dialog.destroy()
 
 # Paths
-def get_base_output_filename(participant: str, session: int, emg_positioning: str, trial: int | None, label: int | None) -> str:
+def get_base_output_filename(participant: str, session: int, trial: int | None, label: int | None) -> str:
     return join_filename_parts({
         'pa': participant,
         'se': session,
-        'po': emg_positioning,
         'tr': trial,
         'la': label,
     })
@@ -470,9 +459,9 @@ def get_survey_output_filename(filename: str) -> str:
 
 def does_session_exist(participant: str, session: int) -> bool:
     return any(os.path.exists(filename) for filename in [
-        get_webcam_output_filename(get_base_output_filename(participant, session, EMG_POSITIONS[0], 0, 0)),
-        get_time_series_output_filename(get_base_output_filename(participant, session, EMG_POSITIONS[0], 0, 0)),
-        get_feedback_output_filename(get_base_output_filename(participant, session, EMG_POSITIONS[0], 0, 0)),
+        get_webcam_output_filename(get_base_output_filename(participant, session, 0, 0)),
+        get_time_series_output_filename(get_base_output_filename(participant, session, 0, 0)),
+        get_feedback_output_filename(get_base_output_filename(participant, session, 0, 0)),
     ])
 
 # Classes
@@ -696,6 +685,10 @@ class Webcam(CV2Video):
             self.height -= border_size
 
 if __name__ == '__main__':
+    parser = ArgumentParser()
+    parser.add_argument("-pa", "--participant", type=str, help="Sets the participant.")
+    args = parser.parse_args()
+
     start_end_logger = TimeLogger("recording_app.py\tStart","recording_app.py\tDone\t{duration:.2f}")
     start_end_logger.start()
     window_exited = False
@@ -733,13 +726,13 @@ if __name__ == '__main__':
 
     # Indentifier
     with TimeLogger("Setup Identifier", "Setup Identifier\tDone\t{duration:.2f}"):
-        participant_value = tkinter.simpledialog.askstring(title="Participant", prompt="Enter the participant identifier:\t\t", parent=window) or 'test'
-        emg_positioning_value = ask_selection(question="Which EMG positioning is used?", values=EMG_POSITIONS, title="EMG Positioning", master=window, font=FEEDBACK_QUESTION_FONT)
+        if args.participant is None:
+            participant_value = tkinter.simpledialog.askstring(title="Participant", prompt="Enter the participant identifier:\t\t", parent=window) or 'test'
+        else:
+            participant_value = args.participant
         session_value = next(i for i in range(tsml.RECORDING_APP_MAX_SESSION_NUMBER) if not does_session_exist(participant=participant_value, session=i))
 
         participant_variable = tkinter.StringVar(master=window, name="participant", value=participant_value)
-        emg_positioning_variable = tkinter.StringVar(master=window, name="emg_positioning", value=emg_positioning_value)
-        emg_positioning_switched_variable = tkinter.BooleanVar(master=window, name="emg_switched", value=False)
         session_variable = tkinter.IntVar(master=window, name="session", value=session_value)
         trial_variable = tkinter.IntVar(master=window, name="trial", value=0)
         label_variable = tkinter.IntVar(master=window, name="label", value=0)

@@ -6,12 +6,16 @@ import os
 import pandas
 from sklearn.model_selection import cross_val_predict
 import models
+import utils
 
 def get_cross_validation_filename(domain: tsml.TsfelFeatureDomain, window_size: int, window_overlap: int, model: str, channels: list[str], person_dependent: bool):
-    return os.path.join(
-        person_dependent and tsml.CROSS_VALIDATION_PERSON_DEPENDENT_DIRECTORY or tsml.CROSS_VALIDATION_PERSON_INDEPENDENT_DIRECTORY,
-        f"cv{person_dependent and 'p' or 'i'}-d_{domain}-wo_{window_overlap}-m_{model}-c_{'.'.join(channels)}.csv"
-    )
+    base = utils.join_filename_parts({
+        'ws': window_size,
+        'wo': window_overlap,
+        'mo': model,
+        'ch': ".".join(channels),
+    })
+    return os.path.join(tsml.CROSS_VALIDATION_DIRECTORY,f"cv{person_dependent and 'p' or 'i'}-{base}.csv")
 
 if __name__ == '__main__':
     # Parameter Parser
@@ -22,7 +26,6 @@ if __name__ == '__main__':
     parser.add_argument("-m", "--model", default="RandomForestClassifier", choices=models.MODELS.keys(), help="The model to be used.")
     parser.add_argument("-c", "--channel", default=tsml.CHANNELS, action="append", choices=tsml.CHANNELS, type=str, help="The channels to be used. (all if omitted)")
     parser.add_argument("-pd", "--person_dependent", action="store_true", help="Whether to do a person-dependent cross-validation. (person-independent if omitted)")
-    # TODO: Add grouping parameter
     args = parser.parse_args()
     if len(args.channel)>len(tsml.CHANNELS):
         args.channel = args.channel[len(tsml.CHANNELS):]
