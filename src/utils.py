@@ -17,6 +17,10 @@ class TimeLogger():
 
     def __exit__(self, exception_type, exception_value, exception_traceback):
         self.end()
+        if exception_type is not None:
+            print(f"Exited with an exception:\t{exception_type} - {exception_value}")
+            print(exception_traceback)
+        
 
     def start(self, **kwargs):
         self._start_time = time.time()

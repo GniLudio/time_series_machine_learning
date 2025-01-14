@@ -4,21 +4,29 @@ from utils import TimeLogger
 from argparse import ArgumentParser
 import tsfel
 import os
+import utils
 
 def get_features_filename(domain: tsml.TsfelFeatureDomain, window_size: int, window_overlap: int) -> str:
     return os.path.join(tsml.FEATURES_DIRECTORY, f"d_{domain}-ws_{window_size}-wo_{window_overlap}.csv")
 
 def load_dataset() -> pandas.DataFrame:
-    df = pandas.DataFrame()
+    df_all = pandas.DataFrame()
 
     for filename in os.listdir(tsml.RECORDING_TIMESERIES_DIRECTORY):
-        df = pandas.concat([df, pandas.read_csv(
+        df = pandas.read_csv(
             filepath_or_buffer=os.path.join(tsml.RECORDING_TIMESERIES_DIRECTORY, filename), 
             index_col=False, 
             dtype=tsml.DATASET_DTYPE
-        )])
-
-    return df
+        )
+        parts = utils.get_filename_parts(filename)
+        df['Participant'] = parts['pa']
+        df['Session'] = int(parts['se'])
+        df['Trial'] = int(parts['tr'])
+        df['Action Unit'] = int(parts['la'])
+        df['Feedback'] = -1
+        df.dropna(axis="index", inplace=True)
+        df_all = pandas.concat([df_all, df])
+    return df_all
 
 if __name__ == '__main__':
     # Parameter Parser

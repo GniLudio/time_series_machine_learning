@@ -394,7 +394,7 @@ def save_recording(participant: str, session: int, trial: int, label: int, time_
     time_series_filename = get_time_series_output_filename(base_filename)
     print("save_recording", "time_series", time_series_filename)
     os.makedirs(os.path.dirname(time_series_filename), exist_ok=True)
-    channel_count = max(len(sample)-1 for sample in (time_series_data + [0]))
+    channel_count = max(len(sample)-1 for sample in (time_series_data + [[]]))
     time_series_df = pandas.DataFrame(data = {
         i < len(tsml.CHANNELS) and tsml.CHANNELS[i] or str(i+1): 
             [ len(sample) > i+1 and sample[i+1] or None for sample in time_series_data]
