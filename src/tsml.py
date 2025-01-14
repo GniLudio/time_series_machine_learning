@@ -7,9 +7,9 @@ import tsfel
 SAMPLING_FREQUENCY = 2000
 
 # RECORDING APP
-RECORDING_APP_NUMBER_OF_EXPRESSIONS = 5
+RECORDING_APP_NUMBER_OF_EXPRESSIONS = 9
 RECORDING_APP_EXPRESSION_DURATION = 5
-RECORDING_APP_TRIAL_COUNT = 3
+RECORDING_APP_TRIAL_COUNT = 1
 RECORDING_APP_WEBCAM_RESOLUTION_WIDTH = 1920 # to bypass opencv default webcam resolution of (640, 480)
 RECORDING_APP_WEBCAM_RESOLUTION_HEIGHT = 1080 # to bypass opencv default webcam resolution of (640, 480)
 RECORDING_APP_PREVIEW_PLAYBACK_SPEED = 0.5
@@ -21,18 +21,37 @@ RECORDING_APP_FEEDBACK_QUESTION = "How satisfied were you with the expression?"
 RECORDING_APP_FEEDBACK_ANSWERS = ["Not at all", "Very"]
 RECORDING_APP_PREVIEW_INSTRUCTION = lambda window: ([
     "Keep your expression neutral and relaxed.", #AU0
-    "Raise the inner corners of your eyebrows.", # AU1 
-    "Raise the outer corners of your eyebrows.", # AU2 
-    "Lower your eyebrows and draw them together", # AU4 
-    "Wrinkle your nose, letting your lips part.", # AU9 
+    "Raise the inner corners of your eyebrows.", # AU1
+    "Raise the outer corners of your eyebrows.", # AU2
+    "Lower your eyebrows and draw them together.", # AU4
+    "Wrinkle your nose, letting your lips part.", # AU9
+    "Let the corners of your lips come up.", # AU12
+    "Push your lower lip up, thereby raising your chin .", # AU17
+    "Stretch your mouth horizontally, pulling your lip corners back toward your ears.", # AU20
+    "Press your lips together.", # AU24
 ])[window.getvar("label")]
 RECORDING_APP_WEBCAM_INSTRUCTION = lambda window: f"Start and then hold the expression for {RECORDING_APP_EXPRESSION_DURATION}s after pressing the START button."
 RECORDING_APP_TITEL_LABEL_NAMES = [
     " 0 (Neutral)",
-    " 1"
-    " 2"
-    " 4"
-    " 9"
+    " 1",
+    " 2",
+    " 4",
+    " 9",
+    "12",
+    "17",
+    "20",
+    "24",
+]
+INDEX_TO_AU = [
+    "AU00",
+    "AU01",
+    "AU02",
+    "AU04",
+    "AU09",
+    "AU12",
+    "AU17",
+    "AU20",
+    "AU24",
 ]
 RECORDING_APP_TITLE = lambda window: (
     "TSML" 
@@ -80,8 +99,8 @@ type TsfelFeatureDomain = typing.Literal["all", "statistical", "temporal", "spec
 TSFEL_FEATURE_DOMAINS: tuple[str] =     ["all"] + [tsfel.get_features_by_domain().keys()]
 TSFEL_FEATURES = [feature for domain in tsfel.get_features_by_domain().values() for feature in domain.keys()]
 # Columns
-type Channel = typing.Literal["Channel 1", "Channel 2", "Channel 3", "Channel 4"]
-CHANNELS: tuple[str] =       ["Channel 1", "Channel 2", "Channel 3", "Channel 4"]
+type Channel = typing.Literal['Lateral Frontalis', 'Corrugator Supercili','Zygomaticus Major','Levator Labii Superioris']
+CHANNELS: tuple[str] =       ['Lateral Frontalis', 'Corrugator Supercili','Zygomaticus Major','Levator Labii Superioris']
 
 type AdditionalColumn = typing.Literal["Participant", "Session", "Trial", "Action Unit", "Feedback"]
 ADDITIONAL_COLUMNS: tuple[str] =      ["Participant", "Session", "Trial", "Action Unit", "Feedback"]
@@ -117,3 +136,5 @@ FEATURES_DIRECTORY = os.path.join(DATA_DIRECTORY, 'features')
 CROSS_VALIDATION_DIRECTORY = os.path.join(DATA_DIRECTORY, 'cross_validation')
 CROSS_VALIDATION_PERSON_DEPENDENT_DIRECTORY = os.path.join(CROSS_VALIDATION_DIRECTORY, 'person_dependent')
 CROSS_VALIDATION_PERSON_INDEPENDENT_DIRECTORY = os.path.join(CROSS_VALIDATION_DIRECTORY, 'person_independent')
+
+TRAINED_MODEL_DIRECTORY = os.path.join(DATA_DIRECTORY, 'models')
