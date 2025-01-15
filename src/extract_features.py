@@ -6,10 +6,15 @@ import tsfel
 import os
 import utils
 
-def get_features_filename(domain: tsml.TsfelFeatureDomain, window_size: int, window_overlap: int) -> str:
-    return os.path.join(tsml.FEATURES_DIRECTORY, f"d_{domain}-ws_{window_size}-wo_{window_overlap}.csv")
+def get_features_filename(domain: tsml.TsfelFeatureDomain, window_size: int, window_overlap: int, participant: str = None) -> str:
+    return os.path.join(tsml.FEATURES_DIRECTORY, utils.join_filename_parts({
+        'd': domain,
+        'ws': window_size,
+        'wo': window_overlap,
+        'pa': participant
+    }) + ".csv")
 
-def load_dataset() -> pandas.DataFrame:
+def load_dataset(participant: str = None) -> pandas.DataFrame:
     df_all = pandas.DataFrame()
 
     for filename in os.listdir(tsml.RECORDING_TIMESERIES_DIRECTORY):
@@ -19,13 +24,14 @@ def load_dataset() -> pandas.DataFrame:
             dtype=tsml.DATASET_DTYPE
         )
         parts = utils.get_filename_parts(filename)
-        df['Participant'] = parts['pa']
-        df['Session'] = int(parts['se'])
-        df['Trial'] = int(parts['tr'])
-        df['Action Unit'] = int(parts['la'])
-        df['Feedback'] = -1
-        df.dropna(axis="index", inplace=True)
-        df_all = pandas.concat([df_all, df])
+        if participant is None or participant == parts['pa']:
+            df['Participant'] = parts['pa']
+            df['Session'] = int(parts['se'])
+            df['Trial'] = int(parts['tr'])
+            df['Action Unit'] = int(parts['la'])
+            df['Feedback'] = -1
+            df.dropna(axis="index", inplace=True)
+            df_all = pandas.concat([df_all, df])
     return df_all
 
 if __name__ == '__main__':
@@ -34,6 +40,7 @@ if __name__ == '__main__':
     parser.add_argument("-d", "--domain", default="all", type=str, choices=tsml.TSFEL_FEATURE_DOMAINS, help="The tsfel feature domain to be used.")
     parser.add_argument("-ws", "--window_size", default=100, type=int, help="The window size to be used. (in ms)")
     parser.add_argument("-wo", "--window_overlap", default=0, type=int, help="The window overlap to be used.")
+    parser.add_argument("-pa", "--participant", default=None, type=str, help="Limits the data to a specific participant")
     args = parser.parse_args()
 
     # Start
@@ -44,18 +51,20 @@ if __name__ == '__main__':
     domain: tsml.TsfelFeatureDomain = args.domain
     window_size: int = args.window_size
     window_overlap: int = args.window_overlap
+    participant: str = args.participant
     
     # Paths
     output_filename: str = get_features_filename(
         domain=domain, 
         window_size=window_size, 
-        window_overlap=window_overlap, 
+        window_overlap=window_overlap,
+        participant=participant
     )
     os.makedirs(os.path.dirname(output_filename), exist_ok=True)
 
     # Load Dataset
     with TimeLogger(start_message="Loading Dataset".ljust(20), end_message="Done\t{duration:.2f}", separator="\t"):
-        dataset = load_dataset()
+        dataset = load_dataset(participant=participant)
 
     # group data
     with TimeLogger(start_message="Grouping Data".ljust(20), end_message="Done\t{duration:.2f}", separator="\t"):

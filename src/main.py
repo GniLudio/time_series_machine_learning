@@ -10,6 +10,6 @@ trained_model_filename = f"model_{participant}"
 live_evaluation_frequency = 100
 
 #subprocess.run(["python", os.path.join("src", "recording_app.py"), "-pa", participant])
-subprocess.run(["python", os.path.join("src", "extract_features.py"), "-ws", str(window_size), "-wo", str(window_overlap)])
-subprocess.run(["python", os.path.join("src", "train_model.py"), "-ws", str(window_size), "-wo", str(window_overlap), "-pa", participant, "-o", trained_model_filename])
+subprocess.run(["python", os.path.join("src", "extract_features.py"), "-ws", str(window_size), "-wo", str(window_overlap), "-pa", participant])
+subprocess.run(["python", os.path.join("src", "train_model.py"), "-ws", str(window_size), "-wo", str(window_overlap), "-o", trained_model_filename, "-pa", participant])
 subprocess.run(["python", os.path.join("src", "live_evaluation.py"), "-ws", str(window_size), "-f", str(live_evaluation_frequency), "-i", trained_model_filename])

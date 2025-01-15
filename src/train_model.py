@@ -36,7 +36,7 @@ if __name__ == '__main__':
     output_filename = get_filename(args.output_filename)
 
     with TimeLogger("Loading Features", "Done\t{duration:.2f}", separator="\t"):
-        dataset = pandas.read_csv(extract_features.get_features_filename(domain, window_size, window_overlap))
+        dataset = pandas.read_csv(extract_features.get_features_filename(domain, window_size, window_overlap, participant))
 
     with TimeLogger("Training Model", "Done\t{duration:.2f}", separator="\t"):
         model = models.MODELS[model_name]()
