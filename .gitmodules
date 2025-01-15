@@ -1,0 +1,3 @@
+[submodule "modules/facsvatar"]
+	path = modules/facsvatar
+	url = https://github.com/Yvo02/FACSvatar.git
