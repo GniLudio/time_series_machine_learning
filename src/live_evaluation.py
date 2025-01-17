@@ -8,7 +8,7 @@ import pandas
 
 import sys
 sys.path.append('.')
-from modules.facsvatarzeromq import FACSvatarZeroMQ
+from modules.facsvatar.modules.facsvatarzeromq import FACSvatarZeroMQ
 
 import tsml
 import train_model
@@ -62,8 +62,7 @@ class FACSvatarMessages(FACSvatarZeroMQ):
         keyboard.hook(lambda e: self.on_key(e))
         while not self.exited:
             fetch_time_series()
-            previous_prediction = prediction
-            if update_evaluation() and previous_prediction == prediction:
+            if update_evaluation():
                 print(prediction)
                 au_data = {"AU01": 0.0,"AU02": 0.0,"AU04": 0.0,"AU05": 0.0,"AU06": 0.0,"AU07": 0.0,"AU09": 0.0,"AU10": 0.0,"AU12": 0.0,"AU14": 0.0,"AU15": 0.0,"AU17": 0.0,"AU20": 0.0,"AU23": 0.0,"AU25": 0.0,"AU26": 0.0,"AU45": 0}
                 au_data[tsml.INDEX_TO_AU[prediction]] = 1.0

@@ -18,13 +18,14 @@ def load_dataset(participant: str = None) -> pandas.DataFrame:
     df_all = pandas.DataFrame()
 
     for filename in os.listdir(tsml.RECORDING_TIMESERIES_DIRECTORY):
-        df = pandas.read_csv(
-            filepath_or_buffer=os.path.join(tsml.RECORDING_TIMESERIES_DIRECTORY, filename), 
-            index_col=False, 
-            dtype=tsml.DATASET_DTYPE
-        )
         parts = utils.get_filename_parts(filename)
-        if participant is None or participant == parts['pa']:
+        if (participant is None) or (participant == parts['pa']):
+            df = pandas.read_csv(
+                filepath_or_buffer=os.path.join(tsml.RECORDING_TIMESERIES_DIRECTORY, filename), 
+                index_col=False, 
+                dtype=tsml.DATASET_DTYPE
+            )
+
             df['Participant'] = parts['pa']
             df['Session'] = int(parts['se'])
             df['Trial'] = int(parts['tr'])

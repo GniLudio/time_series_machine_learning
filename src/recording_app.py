@@ -283,7 +283,7 @@ def setup_videos(window: tkinter.Tk, webcam_path: str, preview_path: str) -> tup
     previews = {
         i: CV2Video(
             container=preview_video,
-            filename_or_index=os.path.join(tsml.RESOURCES_PREVIEWS_DIRECTORY, f"preview_{i}.mp4"),
+            filename_or_index=tsml.RESOURCES_PREVIEW_VIDEO(i),
             api_preference=cv2.CAP_ANY,
             flipped=False,
             width=None,
