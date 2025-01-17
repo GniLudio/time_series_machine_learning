@@ -17,3 +17,4 @@ dependencies:
     - matplotlib==3.9.2
     - pyzmq==26.2.0 
     - asyncio==3.4.3
+    - pyautogui==0.9.54
