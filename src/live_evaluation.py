@@ -15,20 +15,18 @@ import train_model
 from utils import TimeLogger
 
 def fetch_time_series():
-    global time_series_inlet, time_series_timings, time_series_buffer
+    global time_series_inlet, time_series_buffer
 
-    (samples, timings) = time_series_inlet.pull_chunk()
-    time_series_timings.extend(timings)
+    (samples, _) = time_series_inlet.pull_chunk()
     time_series_buffer.extend(samples)
 
 def update_evaluation():
     global time_series_buffer, tsfel_configuration, model, prediction, last_evaluation_time
-    window_start = time.time() - window_size
-    window_start_index = next((i for i in range(len(time_series_timings)) if time_series_timings[i] > window_start), len(window_start_index))
-    time_series_buffer = time_series_buffer[window_start_index:]
-    time_series_timings = time_series_timings[window_start_index:]
-
-    if len(time_series_buffer) < 62: # minimum required samples for tsfel
+    if len(time_series_buffer) == 0:
+        return False
+    elif time.time() - last_evaluation_time < frequency / 1000:
+        return False
+    elif len(time_series_buffer) < 62:
         return False
     else:
         last_evaluation_time = time.time()
@@ -40,6 +38,7 @@ def update_evaluation():
             verbose=0,
         )
         prediction = model.predict(features)[0]
+        time_series_buffer.clear()
         return True
 
 class FACSvatarMessages(FACSvatarZeroMQ):
@@ -48,6 +47,7 @@ class FACSvatarMessages(FACSvatarZeroMQ):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.exited = False
+        #self.emgToMessage = EMGtoMessage()
 
     async def sub(self):
         global prediction
@@ -62,25 +62,61 @@ class FACSvatarMessages(FACSvatarZeroMQ):
         keyboard.hook(lambda e: self.on_key(e))
         while not self.exited:
             fetch_time_series()
-            if time.time() - last_evaluation_time < frequency / 1000:
-                update_evaluation()
-                last_evaluation_time = time.time()
-                
-                print(prediction)
+            previous_prediction = prediction
+            if update_evaluation() and previous_prediction == prediction:
+                print(prediction, tsml.INDEX_TO_AU[prediction])
                 au_data = {"AU01": 0.0,"AU02": 0.0,"AU04": 0.0,"AU05": 0.0,"AU06": 0.0,"AU07": 0.0,"AU09": 0.0,"AU10": 0.0,"AU12": 0.0,"AU14": 0.0,"AU15": 0.0,"AU17": 0.0,"AU20": 0.0,"AU23": 0.0,"AU25": 0.0,"AU26": 0.0,"AU45": 0}
                 au_data[tsml.INDEX_TO_AU[prediction]] = 1.0
                 await self.pub_socket.pub({
-                    "confidence": 1, 
+                    "confidence": 0.98, 
                     "frame": -1, 
                     "timestamp": time.time(), 
                     "au_r": au_data,
                     "gaze": {"gaze_angle_x": 0,"gaze_angle_y": 0},
                     "pose": {"pose_Rx": 0,"pose_Ry": 0,"pose_Rz": 0},
-                    "timestamp_utc": 0
+                    "timestamp_utc": 17244184896509564
                 })
             time.sleep(0.01)
 
         return
+        mu = 0  # Mittelwert
+        sigma = 400  # Breitere Standardabweichung
+        max_value = 100  # Maximaler Wert für die Kurvenspitze
+
+        # x-Werte erzeugen (von -1000 bis 1000 in 0.1er-Schritten für mehr Datenpunkte)
+        x_values = np.arange(-1500, 1500, 0.1)
+
+        # Berechnung der y-Werte
+        y_values = max_value * np.exp(-0.5 * ((x_values - mu) / sigma) ** 2)
+
+        for f, intensity in enumerate(y_values):
+            msg = {"confidence": 0.98, "frame": f, "timestamp": 0.0, "au_r":
+                {"AU01": 0.0,
+                 "AU02": round(intensity/100, 3),
+                 "AU04": 0.0,
+                 "AU05": 0.0,
+                 "AU06": 0.0,
+                 "AU07": 0.0,
+                 "AU09": 0.0,
+                 "AU10": 0.0,
+                 "AU12": 0.0,
+                 "AU14": 0.0,
+                 "AU15": 0.0,
+                 "AU17": 0.0,
+                 "AU20": 0.0,
+                 "AU23": 0.0,
+                 "AU25": 0.0,
+                 "AU26": 0.0,
+                 "AU45": 0},
+                   "gaze":
+                       {"gaze_angle_x": 0.07,
+                        "gaze_angle_y": 0.349},
+                   "pose":
+                       {"pose_Rx": 0.039,
+                        "pose_Ry": -0.032,
+                        "pose_Rz": -0.0559999999999999},
+                   "timestamp_utc": 17244184896509564}
+            await self.pub_socket.pub(msg)
 
     def on_key(self, event: keyboard.KeyboardEvent):
         if event.name == "esc":
@@ -128,7 +164,6 @@ if __name__ == "__main__":
     with TimeLogger("Setup OpenSignals Stream"	, "Done\t{duration:.2f}", separator="\t"):
         time_series_stream_info = next((stream_info for stream_info in pylsl.resolve_streams() if stream_info.name() == "OpenSignals"), None)
         time_series_inlet = time_series_stream_info is not None and pylsl.StreamInlet(time_series_stream_info) or None
-        time_series_timings: list[float] = []
         time_series_buffer: list[list[float]] = []
 
     with TimeLogger("Setup Facsvatar", "Done\t{duration:.2f}"):

@@ -9,7 +9,8 @@ SAMPLING_FREQUENCY = 2000
 # RECORDING APP
 RECORDING_APP_NUMBER_OF_EXPRESSIONS = 9
 RECORDING_APP_EXPRESSION_DURATION = 5
-RECORDING_APP_TRIAL_COUNT = 1
+RECORDING_APP_TRIAL_COUNT = 9999
+RECORDING_APP_RECORDING_DURATION = 30 * 60
 RECORDING_APP_WEBCAM_RESOLUTION_WIDTH = 1920 # to bypass opencv default webcam resolution of (640, 480)
 RECORDING_APP_WEBCAM_RESOLUTION_HEIGHT = 1080 # to bypass opencv default webcam resolution of (640, 480)
 RECORDING_APP_PREVIEW_PLAYBACK_SPEED = 0.5
@@ -99,8 +100,8 @@ type TsfelFeatureDomain = typing.Literal["all", "statistical", "temporal", "spec
 TSFEL_FEATURE_DOMAINS: tuple[str] =     ["all"] + [tsfel.get_features_by_domain().keys()]
 TSFEL_FEATURES = [feature for domain in tsfel.get_features_by_domain().values() for feature in domain.keys()]
 # Columns
-type Channel = typing.Literal['Lateral Frontalis', 'Corrugator Supercili','Zygomaticus Major','Levator Labii Superioris']
-CHANNELS: tuple[str] =       ['Lateral Frontalis', 'Corrugator Supercili','Zygomaticus Major','Levator Labii Superioris']
+type Channel = typing.Literal["Corrugator_Supercili", "Lateral_Frontalis", "Levator_Labii_Superioris", "Zygomaticus_Major", 'Mentalis']
+CHANNELS: tuple[str] =       ["Corrugator_Supercili", "Lateral_Frontalis", "Levator_Labii_Superioris", "Zygomaticus_Major", 'Mentalis']
 
 type AdditionalColumn = typing.Literal["Participant", "Session", "Trial", "Action Unit", "Feedback"]
 ADDITIONAL_COLUMNS: tuple[str] =      ["Participant", "Session", "Trial", "Action Unit", "Feedback"]
@@ -131,6 +132,9 @@ RECORDING_SURVEY_DIRECTORY = os.path.join(RECORDING_DIRECTORY, 'survey')
 ## Resources
 RESOURCES_DIRECTORY = 'resources'
 RESOURCES_PREVIEWS_DIRECTORY = os.path.join(RESOURCES_DIRECTORY, 'previews')
+def RESOURCES_PREVIEW_VIDEO(index):
+    result = (index == 0 and os.path.join(RESOURCES_PREVIEWS_DIRECTORY, 'preview_0.mp4')) or os.path.join(RESOURCES_DIRECTORY, "Videos", INDEX_TO_AU[index].replace('AU0', 'AU'), "WM.avi")
+    return result
 
 FEATURES_DIRECTORY = os.path.join(DATA_DIRECTORY, 'features')
 CROSS_VALIDATION_DIRECTORY = os.path.join(DATA_DIRECTORY, 'cross_validation')

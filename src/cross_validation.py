@@ -4,16 +4,17 @@ from argparse import ArgumentParser
 import tsml
 import os
 import pandas
-from sklearn.model_selection import cross_val_predict
+from sklearn.model_selection import cross_val_predict, GroupKFold
 import models
 import utils
 
-def get_cross_validation_filename(domain: tsml.TsfelFeatureDomain, window_size: int, window_overlap: int, model: str, channels: list[str], person_dependent: bool):
+def get_cross_validation_filename(domain: tsml.TsfelFeatureDomain, window_size: int, window_overlap: int, model: str, channels: list[str], person_dependent: bool, participant: str | None = None):
     base = utils.join_filename_parts({
         'ws': window_size,
         'wo': window_overlap,
         'mo': model,
         'ch': ".".join(channels),
+        'pa': participant,
     })
     return os.path.join(tsml.CROSS_VALIDATION_DIRECTORY,f"cv{person_dependent and 'p' or 'i'}-{base}.csv")
 
@@ -26,6 +27,7 @@ if __name__ == '__main__':
     parser.add_argument("-m", "--model", default="RandomForestClassifier", choices=models.MODELS.keys(), help="The model to be used.")
     parser.add_argument("-c", "--channel", default=tsml.CHANNELS, action="append", choices=tsml.CHANNELS, type=str, help="The channels to be used. (all if omitted)")
     parser.add_argument("-pd", "--person_dependent", action="store_true", help="Whether to do a person-dependent cross-validation. (person-independent if omitted)")
+    parser.add_argument("-pa", "--participant", default=None, type=str, help="Limits the data to a specific participant.")
     args = parser.parse_args()
     if len(args.channel)>len(tsml.CHANNELS):
         args.channel = args.channel[len(tsml.CHANNELS):]
@@ -41,9 +43,10 @@ if __name__ == '__main__':
     model: str = args.model
     channels: list[tsml.Channel] = args.channel
     person_dependent: bool = args.person_dependent
+    participant: str | None = args.participant
     
     # Paths
-    input_filename: str = get_features_filename(domain=domain, window_size=window_size, window_overlap=window_overlap)
+    input_filename: str = get_features_filename(domain=domain, window_size=window_size, window_overlap=window_overlap, participant=participant)
     output_filename: str = get_cross_validation_filename(
         domain=domain,
         window_size=window_size,
@@ -51,6 +54,7 @@ if __name__ == '__main__':
         model=model,
         channels=channels,
         person_dependent=person_dependent,
+        participant=participant
     )
     os.makedirs(os.path.dirname(output_filename), exist_ok=True)
 
@@ -79,6 +83,9 @@ if __name__ == '__main__':
             with TimeLogger("\t" + f"{i} / {len(splits)}\t{split_name}".ljust(10), "Done\t{duration:.2f}", separator="\t"):
                 split_features = df.iloc[split_index]
                 split_labels = labels.iloc[split_index]
+                split_additional_info = additional_info.iloc[split_index]
+                print(type(split_additional_info))
+                exit()
 
                 split_results = pandas.DataFrame(additional_info.iloc[split_index])
                 split_results['Prediction'] = cross_val_predict(
