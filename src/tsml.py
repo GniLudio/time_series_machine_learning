@@ -97,16 +97,17 @@ For each action unit:
 
 # Types
 type TsfelFeatureDomain = typing.Literal["all", "statistical", "temporal", "spectral", "fractal"]
-TSFEL_FEATURE_DOMAINS: tuple[str] =     ["all"] + [tsfel.get_features_by_domain().keys()]
+TSFEL_FEATURE_DOMAINS: tuple[str] =     ["all"] + list(tsfel.get_features_by_domain().keys())
 TSFEL_FEATURES = [feature for domain in tsfel.get_features_by_domain().values() for feature in domain.keys()]
 # Columns
-type Channel = typing.Literal["Corrugator_Supercili", "Lateral_Frontalis", "Levator_Labii_Superioris", "Zygomaticus_Major", 'Mentalis']
-CHANNELS: tuple[str] =       ["Corrugator_Supercili", "Lateral_Frontalis", "Levator_Labii_Superioris", "Zygomaticus_Major", 'Mentalis']
+type Channel = typing.Literal["Corrugator Supercili", "Lateral Frontalis", "Levator Labii Superioris", "Zygomaticus Major", 'Mentalis']
+CHANNELS: tuple[str] =       ["Corrugator Supercili", "Lateral Frontalis", "Levator Labii Superioris", "Zygomaticus Major", 'Mentalis']
 
 type AdditionalColumn = typing.Literal["Participant", "Session", "Trial", "Action Unit", "Feedback"]
 ADDITIONAL_COLUMNS: tuple[str] =      ["Participant", "Session", "Trial", "Action Unit", "Feedback"]
 LABEL_COLUMN = "Action Unit"
 PARTICIPANT_COLUMN = "Participant"
+PREDICTION_COLUMN = "Prediction"
 
 type WebcamBuffer = list[cv2.typing.MatLike]
 type TimeSeriesBuffer = list[list[float]]
@@ -142,3 +143,4 @@ CROSS_VALIDATION_PERSON_DEPENDENT_DIRECTORY = os.path.join(CROSS_VALIDATION_DIRE
 CROSS_VALIDATION_PERSON_INDEPENDENT_DIRECTORY = os.path.join(CROSS_VALIDATION_DIRECTORY, 'person_independent')
 
 TRAINED_MODEL_DIRECTORY = os.path.join(DATA_DIRECTORY, 'models')
+IMAGES_DIRECTORY = os.path.join(DATA_DIRECTORY, "images")

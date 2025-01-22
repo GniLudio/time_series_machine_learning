@@ -10,13 +10,15 @@ import utils
 
 def get_cross_validation_filename(domain: tsml.TsfelFeatureDomain, window_size: int, window_overlap: int, model: str, channels: list[str], person_dependent: bool, participant: str | None = None):
     base = utils.join_filename_parts({
+        'd': domain,
         'ws': window_size,
         'wo': window_overlap,
         'mo': model,
         'ch': ".".join(channels),
         'pa': participant,
+        'pd': person_dependent and '' or None,
     })
-    return os.path.join(tsml.CROSS_VALIDATION_DIRECTORY,f"cv{person_dependent and 'p' or 'i'}-{base}.csv")
+    return os.path.join(tsml.CROSS_VALIDATION_DIRECTORY,f"cv{person_dependent and 'p' or 'i'}_{base}.csv")
 
 if __name__ == '__main__':
     # Parameter Parser
@@ -83,15 +85,19 @@ if __name__ == '__main__':
             with TimeLogger("\t" + f"{i} / {len(splits)}\t{split_name}".ljust(10), "Done\t{duration:.2f}", separator="\t"):
                 split_features = df.iloc[split_index]
                 split_labels = labels.iloc[split_index]
-                split_additional_info = additional_info.iloc[split_index]
-                print(type(split_additional_info))
-                exit()
-
+                split_additional_info: pandas.DataFrame = additional_info.iloc[split_index]
                 split_results = pandas.DataFrame(additional_info.iloc[split_index])
+
+                print("Grouping", end="\t", flush=True)
+                split_groups = [str(group) for i, group in split_additional_info.iterrows()]
+
+                print("Predicting", end="\t", flush=True)
                 split_results['Prediction'] = cross_val_predict(
                     estimator = estimator,
                     X = split_features,
                     y = split_labels,
+                    cv = GroupKFold(),
+                    groups = split_groups
                 )
                 split_results.to_csv(path_or_buf=output_filename, index=False, header=(i==1), mode=(i==1) and 'w' or 'a')
 

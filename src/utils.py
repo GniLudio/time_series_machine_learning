@@ -56,8 +56,11 @@ def get_filename_parts(filename: str) -> dict[str, str]:
 
     parts = {}
     for part in str(base_filename).split("_"):
-        key, value = part.split("-")
-        parts[key] = value
+        if "-" in part:
+            key, value = part.split("-")
+            parts[key] = value
+        else:
+            parts[part] = ''
 
     return parts
 
