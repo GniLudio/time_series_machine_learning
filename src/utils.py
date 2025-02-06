@@ -1,7 +1,13 @@
-import time
+import os
 import pathlib
+import time
 
-class TimeLogger():
+import pandas
+
+import tsml
+
+
+class TimeLogger:
     def __init__(self, start_message: str | None, end_message: str | None, separator: str = "\n") -> None:
         self._start_message = start_message
         self._end_message = end_message
@@ -20,13 +26,25 @@ class TimeLogger():
     def start(self, **kwargs):
         self._start_time = time.time()
         if self._start_message:
-            print(self._start_message.format(start_time = self._start_time, **kwargs), end=self._separator, flush=True)
+            print(
+                self._start_message.format(start_time=self._start_time, **kwargs),
+                end=self._separator,
+                flush=True,
+            )
 
     def end(self, **kwargs):
         self._end_time = time.time()
         if self._end_message:
             duration = self._end_time - self._start_time
-            print(self._end_message.format(start_time=self._start_time, end_time=self._end_time, duration=duration, **kwargs))
+            print(
+                self._end_message.format(
+                    start_time=self._start_time,
+                    end_time=self._end_time,
+                    duration=duration,
+                    **kwargs,
+                )
+            )
+
 
 def get_filename_parts(filename: str) -> dict[str, str]:
     base_filename = pathlib.Path(filename).stem
@@ -39,5 +57,16 @@ def get_filename_parts(filename: str) -> dict[str, str]:
 
     return parts
 
+
 def join_filename_parts(parts: dict[str, any]) -> str:
     return "_".join((f"{key}-{value}") for key, value in parts.items() if value is not None)
+
+
+def load_annotations() -> pandas.DataFrame:
+    return pandas.read_excel(
+        io=os.path.join(tsml.RECORDING_DIRECTORY, "misc", "EMT_cor3.xlsx"),
+    )
+
+
+def load_familiarities() -> pandas.api.typing.DataFrameGroupBy:
+    return load_annotations().groupby(["participant", "trial"])
