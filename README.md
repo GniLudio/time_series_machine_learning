@@ -124,18 +124,16 @@ A list of classifiers used by the cross validation.
     * Window Sizes: 100, 200, 400, 800, 1000
     * Window Overlaps: 0, 20, 25, 50
     * Folds: Stratified 5 Fold, By participant, by session, by trial
-    * Channels: All and each alone
     * Minimum Rating: all, >=1, >=2, >=3, >=4, =5
     * Good/Bad participants: all, only best 50%
     * Limit Action Units: All, Only first 5
 
 ### Comparisons
 * Window Size
+* Window Overlap
 * Models
     * Person-Dependent
     * Person-Indpendent
-* Channels
-* Non Grouped (9 AUs) vs Grouped (1/2/4 and 17/20/24)
 * Fold Strategies (statefied, participant, session, trial, action unit)
 * Minimum Ratings
     

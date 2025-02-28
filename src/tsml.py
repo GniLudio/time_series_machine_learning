@@ -140,6 +140,10 @@ RESOURCES_PREVIEWS_DIRECTORY = os.path.join(RESOURCES_DIRECTORY, "previews")
 # Features
 FEATURES_DIRECTORY = os.path.join(DATA_DIRECTORY, "features")
 # Cross Valdiation
-CROSS_VALIDATION_DIRECTORY = os.path.join(DATA_DIRECTORY, "cross_validation")
+CROSS_VALIDATION_DIRECTORY = os.path.join(
+    DATA_DIRECTORY, "model_results", "cross_validation"
+)
 # Images
 IMAGES_DIRECTORY = os.path.join(DATA_DIRECTORY, "images")
+IMAGES_CV_DIRECTORY = os.path.join(IMAGES_DIRECTORY, "cross_validation")
+IMAGE_COMPARISONS_DIRECTORY = os.path.join(IMAGES_DIRECTORY, "comparisons")
